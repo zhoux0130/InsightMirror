@@ -7,4 +7,3 @@ packages/*/dist
 *.md
 .DS_Store
 packages/compute
-packages/web
