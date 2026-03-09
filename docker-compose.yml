@@ -23,7 +23,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-insightmirror}:${POSTGRES_PASSWORD:-insightmirror}@postgres:5432/${POSTGRES_DB:-insightmirror}
+      DATABASE_URL: ${DATABASE_URL}
       COMPUTE_SERVICE_URL: http://compute:8000
     depends_on:
       postgres:
@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-insightmirror}:${POSTGRES_PASSWORD:-insightmirror}@postgres:5432/${POSTGRES_DB:-insightmirror}
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       postgres:
         condition: service_healthy
