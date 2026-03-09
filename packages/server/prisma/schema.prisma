@@ -1,0 +1,166 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  avatar    String?
+  mobile    String?   @unique
+  bio       String?
+  email     String?   @unique
+  nickname  String?
+  phone     String?   @unique
+  oauths    OAuth[]
+  sessions  Session[]
+
+  @@index([email])
+  @@index([mobile])
+  @@index([phone])
+  @@map("users")
+}
+
+model Session {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  type       String?
+  token      String   @unique
+  accessAt   DateTime @updatedAt
+  sessionKey String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OAuth {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  type      String
+  openid    String
+  unionid   String?
+  appid     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, openid])
+  @@index([unionid])
+  @@index([userId, type, appid])
+  @@map("oauths")
+}
+
+model Setting {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  name      String    @unique
+  data      Json?
+  remark    String?
+
+  @@index([name])
+  @@map("settings")
+}
+
+model SecurityMaster {
+  symbol      String    @id
+  name        String
+  exchange    String
+  listDate    DateTime? @map("list_date") @db.Date
+  delistDate  DateTime? @map("delist_date") @db.Date
+  listStatus  String    @map("list_status") @default("listed")
+  source      String    @default("akshare")
+  createdAt   DateTime  @map("created_at") @default(now())
+  updatedAt   DateTime  @map("updated_at") @default(now()) @updatedAt
+
+  @@index([exchange])
+  @@index([listStatus])
+  @@map("security_master")
+}
+
+model DailyBar {
+  symbol     String
+  tradeDate  DateTime   @map("trade_date") @db.Date
+  open       Decimal    @db.Decimal(12, 4)
+  high       Decimal    @db.Decimal(12, 4)
+  low        Decimal    @db.Decimal(12, 4)
+  close      Decimal    @db.Decimal(12, 4)
+  volume     BigInt
+  amount     Decimal?   @db.Decimal(18, 2)
+  turnover   Decimal?   @db.Decimal(8, 4)
+  pctChange  Decimal?   @map("pct_change") @db.Decimal(8, 4)
+  createdAt  DateTime   @map("created_at") @default(now())
+
+  @@id([symbol, tradeDate])
+  @@index([symbol, tradeDate(sort: Desc)])
+  @@map("daily_bar")
+}
+
+model SegmentIndex {
+  id             BigInt   @id @default(autoincrement())
+  symbol         String
+  startDate      DateTime @map("start_date") @db.Date
+  endDate        DateTime @map("end_date") @db.Date
+  windowSize     Int      @map("window_size") @default(60) @db.SmallInt
+  featureVersion String   @map("feature_version") @default("v1")
+  createdAt      DateTime @map("created_at") @default(now())
+
+  @@unique([symbol, endDate, windowSize, featureVersion])
+  @@index([symbol, endDate(sort: Desc)])
+  @@index([featureVersion])
+  @@index([endDate])
+  @@map("segment_index")
+}
+
+model SegmentFutureLabel {
+  segmentId    BigInt    @map("segment_id")
+  futureDays   Int       @map("future_days") @default(20) @db.SmallInt
+  returnRate   Decimal?  @map("return_rate") @db.Decimal(8, 4)
+  maxDrawdown  Decimal?  @map("max_drawdown") @db.Decimal(8, 4)
+  maxProfit    Decimal?  @map("max_profit") @db.Decimal(8, 4)
+  sharpeRatio  Decimal?  @map("sharpe_ratio") @db.Decimal(8, 4)
+  winFlag      Boolean?  @map("win_flag")
+  labelStatus  String    @map("label_status") @default("pending")
+  filledAt     DateTime? @map("filled_at")
+  createdAt    DateTime  @map("created_at") @default(now())
+
+  @@id([segmentId])
+  @@index([labelStatus])
+  @@map("segment_future_label")
+}
+
+model FeatureVersionConfig {
+  version      String   @id
+  description  String?
+  featureDim   Int      @map("feature_dim") @db.SmallInt
+  featureParams Json    @map("feature_params")
+  status       String   @default("active")
+  isDefault    Boolean  @map("is_default") @default(false)
+  createdAt    DateTime @map("created_at") @default(now())
+
+  @@map("feature_version_config")
+}
+
+model PipelineRunLog {
+  id               BigInt    @id @default(autoincrement())
+  runDate          DateTime  @map("run_date") @db.Date
+  stepName         String    @map("step_name")
+  status           String
+  startedAt        DateTime  @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  recordsProcessed Int?      @map("records_processed")
+  errorMessage     String?   @map("error_message")
+
+  @@unique([runDate, stepName])
+  @@map("pipeline_run_log")
+}

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+.venv/
+
+# Build outputs
+dist/
+build/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+packages/server/prisma/migrations/
+
+# Compute raw snapshots
+packages/compute/data/raw/
+.pgdata/
+.pglog
+
+# Claude / OpenCode local settings
+.claude/settings.local.json
+.opencode/

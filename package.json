@@ -1,0 +1,32 @@
+{
+  "name": "insight-mirror",
+  "version": "1.0.0",
+  "description": "InsightMirror - Mobile H5 应用",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "pnpm --filter server dev",
+    "dev:web": "pnpm --filter web dev",
+    "build:server": "pnpm --filter server build",
+    "build:web": "pnpm --filter web build",
+    "dev:digest": "pnpm --filter @insight-mirror/group-digest dev",
+    "build:digest": "pnpm --filter @insight-mirror/group-digest build",
+    "start:server": "pnpm --filter server start",
+    "install:all": "pnpm install"
+  },
+  "keywords": [
+    "nodejs",
+    "fastify",
+    "typescript",
+    "react",
+    "vite",
+    "mobile-h5"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

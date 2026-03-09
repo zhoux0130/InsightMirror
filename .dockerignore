@@ -1,0 +1,10 @@
+node_modules
+packages/*/node_modules
+dist
+packages/*/dist
+.git
+.env
+*.md
+.DS_Store
+packages/compute
+packages/web
