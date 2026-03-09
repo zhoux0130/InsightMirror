@@ -1,9 +1,6 @@
 # 构建阶段
 FROM node:24-slim AS builder
 
-# 安装构建依赖和 OpenSSL
-RUN apt-get update -y && apt-get install -y openssl libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
-
 RUN npm install -g pnpm@8.6.12
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -20,10 +17,7 @@ RUN pnpm --filter server build
 # 运行阶段
 FROM node:24-slim AS runner
 
-# 安装运行时依赖：OpenSSL 和 libssl
-RUN apt-get update -y && \
-    apt-get install -y openssl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+# openssl and ca-certificates are already included in node:24-slim
 
 RUN npm install -g pnpm@8.6.12
 WORKDIR /app
