@@ -193,7 +193,7 @@ function Home() {
               </div>
             </section>
 
-            <section className="card">
+            <section className="card card-trio">
               <SectionTitle
                 title={detail.entry.mode === 'range' ? '建议参与区间' : '参与建议'}
                 badge={`评分 ${detail.rating.score}`}
@@ -220,7 +220,7 @@ function Home() {
               <blockquote>{detail.entry.note}</blockquote>
             </section>
 
-            <section className="card">
+            <section className="card card-trio">
               <SectionTitle title="情绪温度" badge={`${detail.emotion.temp} / 100`} />
               <p className="pill-row">
                 <span className="soft-pill">{detail.emotion.status}</span>
@@ -231,7 +231,7 @@ function Home() {
               {detail.emotion.warning ? <p className="metric-line accent-copy">{detail.emotion.warning}</p> : null}
             </section>
 
-            <section className="card">
+            <section className="card card-trio">
               <SectionTitle title="阶段结构" />
               <div className="phase-rail">
                 {detail.phase.nodes.map((node) => (
@@ -252,7 +252,7 @@ function Home() {
               </div>
             </section>
 
-            <section className="card">
+            <section className="card card-duo">
               <SectionTitle title="风险收益结构" badge={`过去 ${detail.riskReward.sampleYears} 年`} />
               <div className="stat-grid">
                 <div className="stat-box">
@@ -269,7 +269,7 @@ function Home() {
               </p>
             </section>
 
-            <section className="card">
+            <section className="card card-duo">
               <SectionTitle title="资金延续性" badge={detail.flow.continuity} />
               {detail.flow.signals.map((signal) => (
                 <p key={signal} className="metric-line">
@@ -283,7 +283,7 @@ function Home() {
             </section>
 
             {detail.similarityBreakdown ? (
-              <section className="card">
+              <section className="card card-wide">
                 <SectionTitle
                   title="相似度拆解"
                   badge={`${detail.similarityBreakdown.windowSize} 日窗口`}
@@ -312,7 +312,7 @@ function Home() {
               </section>
             ) : null}
 
-            <section className="card">
+            <section className="card card-wide">
               <SectionTitle title="相似样本" badge="Top 8" />
               <div className="sample-list">
                 {detail.similarSamples.map((sample) => (

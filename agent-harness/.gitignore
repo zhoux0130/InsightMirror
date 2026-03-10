@@ -1,0 +1,4 @@
+# Agent Harness - generated files can be committed
+# But ignore local artifacts
+*.log
+.DS_Store

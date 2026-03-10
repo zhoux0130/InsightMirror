@@ -1,0 +1,22 @@
+{
+  "project": "InsightMirror",
+  "description": "InsightMirror — Mobile H5 应用，monorepo 架构（pnpm workspace），包含三个模块：\n- **web** (packages/web)：React 18 + Vite + TypeScript，移动端 H5 界面\n- **server** (packages/server)：Fastify 5 + Prisma + PostgreSQL (pgvector)，后端 API\n- **compute** (packages/compute)：Python FastAPI，数据计算服务（akshare/tushare）\nDocker Compose 编排，PostgreSQL + pgvector 数据库。\n",
+  "tech_stack": {
+    "frontend": {
+      "name": "web",
+      "stack": "React 18 + Vite 6 + TypeScript + React Router 6 + Axios",
+      "path": "packages/web/"
+    },
+    "backend": {
+      "name": "server",
+      "stack": "Fastify 5 + Prisma + PostgreSQL (pgvector) + JWT + Swagger",
+      "path": "packages/server/"
+    },
+    "other": {
+      "name": "compute",
+      "stack": "Python FastAPI + akshare/tushare + PostgreSQL",
+      "path": "packages/compute/"
+    }
+  },
+  "tasks": []
+}
