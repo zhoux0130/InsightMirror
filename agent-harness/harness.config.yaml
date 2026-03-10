@@ -1,0 +1,92 @@
+# harness.config.yaml — InsightMirror
+# Mobile H5 应用：Fastify 后端 + React 前端 + Python 计算服务
+
+project:
+  name: InsightMirror
+  description: |
+    InsightMirror — Mobile H5 应用，monorepo 架构（pnpm workspace），包含三个模块：
+    - **web** (packages/web)：React 18 + Vite + TypeScript，移动端 H5 界面
+    - **server** (packages/server)：Fastify 5 + Prisma + PostgreSQL (pgvector)，后端 API
+    - **compute** (packages/compute)：Python FastAPI，数据计算服务（akshare/tushare）
+    Docker Compose 编排，PostgreSQL + pgvector 数据库。
+  rootDir: ".."
+
+repos:
+  - name: web
+    path: packages/web/
+    type: frontend
+    language: TypeScript
+    packageManager: pnpm
+    buildCommand: pnpm --filter web build
+    devCommand: pnpm --filter web dev
+    devPort: 5173
+    techStack: "React 18 + Vite 6 + TypeScript + React Router 6 + Axios"
+
+  - name: server
+    path: packages/server/
+    type: backend
+    language: TypeScript
+    packageManager: pnpm
+    buildCommand: pnpm --filter server build
+    lintCommand: pnpm --filter server lint
+    testCommand: pnpm --filter server test
+    devCommand: pnpm --filter server dev
+    devPort: 3000
+    techStack: "Fastify 5 + Prisma + PostgreSQL (pgvector) + JWT + Swagger"
+
+  - name: compute
+    path: packages/compute/
+    type: other
+    language: Python
+    buildCommand: "cd packages/compute && python -m pytest tests/"
+    devCommand: "cd packages/compute && python -m uvicorn app.main:app --reload --port 8000"
+    devPort: 8000
+    techStack: "Python FastAPI + akshare/tushare + PostgreSQL"
+
+workflow:
+  initScript: ./init.sh
+  artifactsDir: ../artifacts
+
+testing:
+  browserTesting: true
+  credentials:
+    loginUrl: http://localhost:5173
+    notes: "微信 OAuth 登录，本地开发可能需要 mock 或测试账号"
+  screenshotDir: "../artifacts/screenshots/"
+  logDir: "$AGENT_LOGS_DIR/"
+
+commit:
+  messagePrefix: "task#{id}:"
+  multiRepo: false  # monorepo，单仓库
+
+api:
+  basePath: /api
+  modules:
+    - name: Health
+      pathPrefix: /api/health
+      description: 健康检查
+    - name: Auth
+      pathPrefix: /api/auth
+      description: 微信 OAuth 登录、JWT 认证
+    - name: Compute
+      pathPrefix: /compute
+      description: Python 计算服务（数据抓取、指标计算）
+
+codingConventions:
+  Frontend (web):
+    - React 18 + TypeScript
+    - Vite 构建
+    - React Router 6 路由
+    - Axios HTTP 请求
+    - 移动端 H5 适配
+  Backend (server):
+    - Fastify 5 框架
+    - Prisma ORM + PostgreSQL (pgvector)
+    - JWT 认证（cookie-based）
+    - Swagger API 文档
+    - "cross-env 环境变量管理"
+  Compute (Python):
+    - FastAPI 框架
+    - akshare / tushare 数据源
+    - 定时任务调度（scheduler）
+    - pytest 测试

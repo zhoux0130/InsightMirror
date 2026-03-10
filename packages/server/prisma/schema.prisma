@@ -20,6 +20,7 @@ model User {
   phone     String?   @unique
   oauths    OAuth[]
   sessions  Session[]
+  baskets   Basket[]
 
   @@index([email])
   @@index([mobile])
@@ -149,6 +150,67 @@ model FeatureVersionConfig {
   createdAt    DateTime @map("created_at") @default(now())
 
   @@map("feature_version_config")
+}
+
+model Basket {
+  id          String        @id @default(cuid())
+  userId      String        @map("user_id")
+  name        String
+  description String?
+  capital     Decimal       @default(100000) @db.Decimal(14, 2)
+  status      String        @default("active")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stocks      BasketStock[]
+  rules       BasketRule[]
+  positions   Position[]
+
+  @@index([userId])
+  @@map("baskets")
+}
+
+model BasketStock {
+  id       String   @id @default(cuid())
+  basketId String   @map("basket_id")
+  symbol   String
+  addedAt  DateTime @default(now()) @map("added_at")
+  basket   Basket   @relation(fields: [basketId], references: [id], onDelete: Cascade)
+
+  @@unique([basketId, symbol])
+  @@map("basket_stocks")
+}
+
+model BasketRule {
+  id             String     @id @default(cuid())
+  basketId       String     @map("basket_id")
+  name           String?
+  conditionGroup Json       @map("condition_group")
+  enabled        Boolean    @default(true)
+  basket         Basket     @relation(fields: [basketId], references: [id], onDelete: Cascade)
+  positions      Position[]
+
+  @@map("basket_rules")
+}
+
+model Position {
+  id          String    @id @default(cuid())
+  basketId    String    @map("basket_id")
+  symbol      String
+  buyDate     DateTime  @map("buy_date") @db.Date
+  buyPrice    Decimal   @map("buy_price") @db.Decimal(12, 4)
+  shares      Int
+  sellDate    DateTime? @map("sell_date") @db.Date
+  sellPrice   Decimal?  @map("sell_price") @db.Decimal(12, 4)
+  triggerType String    @default("manual") @map("trigger_type")
+  ruleId      String?   @map("rule_id")
+  note        String?
+  basket      Basket    @relation(fields: [basketId], references: [id], onDelete: Cascade)
+  rule        BasketRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([basketId])
+  @@index([basketId, symbol])
+  @@map("positions")
 }
 
 model PipelineRunLog {

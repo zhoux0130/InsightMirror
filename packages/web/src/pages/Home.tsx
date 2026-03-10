@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { getStockDetail, listStockOptions, type StockDetailResponse, type StockOption } from '@/services/stocks';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FAVORITES_KEY = 'insightmirror:favorites';
 
 function Home() {
+  const { user, isLoggedIn, logout } = useAuth();
   const [options, setOptions] = useState<StockOption[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -102,6 +105,24 @@ function Home() {
           <div className="hero-orb" aria-hidden="true" />
         </header>
 
+        <nav className="nav-bar">
+          <Link to="/baskets" className="nav-link">实盘模拟</Link>
+          <div className="nav-spacer" />
+          {isLoggedIn ? (
+            <div className="user-bar">
+              {user?.avatar ? (
+                <img className="user-avatar" src={user.avatar} alt="" />
+              ) : (
+                <span className="user-avatar-placeholder" />
+              )}
+              <span className="user-name">{user?.nickname || '用户'}</span>
+              <button className="btn btn-ghost btn-xs" onClick={logout}>退出</button>
+            </div>
+          ) : (
+            <Link to="/login" className="nav-link">登录</Link>
+          )}
+        </nav>
+
         <form className="query-panel" onSubmit={handleQuery}>
           <label className="field">
             <span>股票</span>
@@ -172,7 +193,7 @@ function Home() {
               </div>
             </section>
 
-            <section className="card">
+            <section className="card card-trio">
               <SectionTitle
                 title={detail.entry.mode === 'range' ? '建议参与区间' : '参与建议'}
                 badge={`评分 ${detail.rating.score}`}
@@ -199,7 +220,7 @@ function Home() {
               <blockquote>{detail.entry.note}</blockquote>
             </section>
 
-            <section className="card">
+            <section className="card card-trio">
               <SectionTitle title="情绪温度" badge={`${detail.emotion.temp} / 100`} />
               <p className="pill-row">
                 <span className="soft-pill">{detail.emotion.status}</span>
@@ -210,7 +231,7 @@ function Home() {
               {detail.emotion.warning ? <p className="metric-line accent-copy">{detail.emotion.warning}</p> : null}
             </section>
 
-            <section className="card">
+            <section className="card card-trio">
               <SectionTitle title="阶段结构" />
               <div className="phase-rail">
                 {detail.phase.nodes.map((node) => (
@@ -231,7 +252,7 @@ function Home() {
               </div>
             </section>
 
-            <section className="card">
+            <section className="card card-duo">
               <SectionTitle title="风险收益结构" badge={`过去 ${detail.riskReward.sampleYears} 年`} />
               <div className="stat-grid">
                 <div className="stat-box">
@@ -248,7 +269,7 @@ function Home() {
               </p>
             </section>
 
-            <section className="card">
+            <section className="card card-duo">
               <SectionTitle title="资金延续性" badge={detail.flow.continuity} />
               {detail.flow.signals.map((signal) => (
                 <p key={signal} className="metric-line">
@@ -262,7 +283,7 @@ function Home() {
             </section>
 
             {detail.similarityBreakdown ? (
-              <section className="card">
+              <section className="card card-wide">
                 <SectionTitle
                   title="相似度拆解"
                   badge={`${detail.similarityBreakdown.windowSize} 日窗口`}
@@ -291,7 +312,7 @@ function Home() {
               </section>
             ) : null}
 
-            <section className="card">
+            <section className="card card-wide">
               <SectionTitle title="相似样本" badge="Top 8" />
               <div className="sample-list">
                 {detail.similarSamples.map((sample) => (
