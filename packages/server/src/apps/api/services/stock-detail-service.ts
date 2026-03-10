@@ -284,12 +284,13 @@ export class StockDetailService {
     const rows = await this.prisma.$queryRaw<StockOptionRow[]>`
       SELECT sm.symbol, sm.name, MAX(db.trade_date) AS last_trade_date
       FROM security_master sm
-      JOIN segment_index si
-        ON si.symbol = sm.symbol
-       AND si.window_size = 60
-       AND si.feature_version = 'v1'
-      JOIN daily_bar db
-        ON db.symbol = sm.symbol
+      JOIN daily_bar db ON db.symbol = sm.symbol
+      WHERE EXISTS (
+        SELECT 1 FROM segment_index si
+        WHERE si.symbol = sm.symbol
+          AND si.window_size = 60
+          AND si.feature_version = 'v1'
+      )
       GROUP BY sm.symbol, sm.name
       ORDER BY sm.symbol ASC
     `;

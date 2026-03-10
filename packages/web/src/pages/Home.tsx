@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { getStockDetail, listStockOptions, type StockDetailResponse, type StockOption } from '@/services/stocks';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FAVORITES_KEY = 'insightmirror:favorites';
 
 function Home() {
+  const { user, isLoggedIn, logout } = useAuth();
   const [options, setOptions] = useState<StockOption[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -101,6 +104,24 @@ function Home() {
           </div>
           <div className="hero-orb" aria-hidden="true" />
         </header>
+
+        <nav className="nav-bar">
+          <Link to="/baskets" className="nav-link">实盘模拟</Link>
+          <div className="nav-spacer" />
+          {isLoggedIn ? (
+            <div className="user-bar">
+              {user?.avatar ? (
+                <img className="user-avatar" src={user.avatar} alt="" />
+              ) : (
+                <span className="user-avatar-placeholder" />
+              )}
+              <span className="user-name">{user?.nickname || '用户'}</span>
+              <button className="btn btn-ghost btn-xs" onClick={logout}>退出</button>
+            </div>
+          ) : (
+            <Link to="/login" className="nav-link">登录</Link>
+          )}
+        </nav>
 
         <form className="query-panel" onSubmit={handleQuery}>
           <label className="field">

@@ -25,6 +25,9 @@ services:
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL}
       COMPUTE_SERVICE_URL: http://compute:8000
+      WX_OPEN_APPID: ${WX_OPEN_APPID:-}
+      WX_OPEN_SECRET: ${WX_OPEN_SECRET:-}
+      WX_OPEN_REDIRECT_URI: ${WX_OPEN_REDIRECT_URI:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,6 +44,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      SCHEDULER_ENABLED: "${SCHEDULER_ENABLED:-true}"
+      SCHEDULER_HOUR: "${SCHEDULER_HOUR:-10}"
+      SCHEDULER_MINUTE: "${SCHEDULER_MINUTE:-0}"
     depends_on:
       postgres:
         condition: service_healthy

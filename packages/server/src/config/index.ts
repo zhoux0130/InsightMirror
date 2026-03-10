@@ -54,3 +54,9 @@ export const database = {
 export const compute = {
   url: process.env.COMPUTE_SERVICE_URL || 'http://localhost:8000',
 }
+
+export const wechat = {
+  openAppId: process.env.WX_OPEN_APPID || '',
+  openSecret: process.env.WX_OPEN_SECRET || '',
+  openRedirectUri: process.env.WX_OPEN_REDIRECT_URI || '',
+}
