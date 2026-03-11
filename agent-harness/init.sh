@@ -8,7 +8,7 @@
 
 HARNESS_ROOT="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$HARNESS_ROOT")"
-ARTIFACTS_DIR="$PROJECT_ROOT/artifacts"
+RUNTIME_DIR="$HARNESS_ROOT/.runtime"
 
 WEB_DIR="$PROJECT_ROOT/packages/web/"
 SERVER_DIR="$PROJECT_ROOT/packages/server/"
@@ -57,21 +57,71 @@ fi
 ok "compute/ ready"
 
 
-mkdir -p "$ARTIFACTS_DIR"
+# =============================================================================
+# 2. Prepare runtime directory (screenshots, logs, session data)
+# =============================================================================
+info "--- Preparing runtime directory ---"
 
-# Create timestamped session artifacts directory
-SESSION_TS=$(date +%Y%m%d_%H%M%S)
-SESSION_DIR="$ARTIFACTS_DIR/session_$SESSION_TS"
-mkdir -p "$SESSION_DIR/screenshots"
-mkdir -p "$SESSION_DIR/logs"
-mkdir -p "$SESSION_DIR/test-results"
-ok "artifacts/ directory ready"
-ok "Session artifacts: $SESSION_DIR"
+# Clean previous session data, keep the dir
+rm -rf "$RUNTIME_DIR"
+mkdir -p "$RUNTIME_DIR/screenshots"
+mkdir -p "$RUNTIME_DIR/logs"
 
-export AGENT_SESSION_DIR="$SESSION_DIR"
-export AGENT_SCREENSHOTS_DIR="$SESSION_DIR/screenshots"
-export AGENT_LOGS_DIR="$SESSION_DIR/logs"
-export AGENT_TEST_RESULTS_DIR="$SESSION_DIR/test-results"
+# Export env vars for agent and scripts to use
+export AGENT_RUNTIME_DIR="$RUNTIME_DIR"
+export AGENT_SCREENSHOTS_DIR="$RUNTIME_DIR/screenshots"
+export AGENT_LOGS_DIR="$RUNTIME_DIR/logs"
+
+ok "Runtime dir: $RUNTIME_DIR"
+ok "  screenshots/ — browser test screenshots"
+ok "  logs/        — build & lint logs"
+
+# Session metadata
+cat > "$RUNTIME_DIR/session-info.json" <<EOF
+{
+  "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "node_version": "$(node -v 2>/dev/null || echo N/A)",
+  "directories": {
+    "screenshots": "$RUNTIME_DIR/screenshots",
+    "logs": "$RUNTIME_DIR/logs"
+  }
+}
+EOF
+
+# Test report template
+cat > "$RUNTIME_DIR/test-report.md" <<'REPORT_EOF'
+# Test Report
+
+## Session Info
+- Start time: PLACEHOLDER_TIME
+- Task: (to be filled)
+
+## Test Steps
+
+| # | Step | Type | Result | Screenshot/Log | Notes |
+|---|------|------|--------|----------------|-------|
+| 1 | -    | -    | -      | -              | -     |
+
+## Build Verification
+- [ ] `pnpm --filter web build` passes
+- [ ] `pnpm --filter server lint` passes
+- [ ] `pnpm --filter server build` passes
+- [ ] `cd packages/compute &amp;&amp; python -m pytest tests/` passes
+
+## Browser Tests
+- [ ] Page loads correctly
+- [ ] Interactions work
+- [ ] Screenshots saved
+
+## Conclusion
+- Status: PENDING
+- Notes: (to be filled)
+REPORT_EOF
+
+sed -i '' "s/PLACEHOLDER_TIME/$(date '+%Y-%m-%d %H:%M:%S')/" "$RUNTIME_DIR/test-report.md" 2>/dev/null || \
+sed -i "s/PLACEHOLDER_TIME/$(date '+%Y-%m-%d %H:%M:%S')/" "$RUNTIME_DIR/test-report.md" 2>/dev/null
+
+ok "test-report.md template generated"
 
 # =============================================================================
 # 1. web setup
@@ -109,7 +159,7 @@ if port_in_use 5173; then
 else
   echo "Starting dev server..."
   cd "$WEB_DIR"
-  nohup pnpm --filter web dev > "$ARTIFACTS_DIR/web-dev.log" 2>&1 &
+  nohup pnpm --filter web dev > "$RUNTIME_DIR/logs/web-dev.log" 2>&1 &
   DEV_PID=$!
   echo -n "Waiting for dev server"
   for i in $(seq 1 30); do
@@ -123,7 +173,7 @@ else
   done
   if ! port_in_use 5173; then
     echo ""
-    warn "Dev server start timeout — check log: $ARTIFACTS_DIR/web-dev.log"
+    warn "Dev server start timeout — check log: $RUNTIME_DIR/logs/web-dev.log"
   fi
 fi
 
@@ -165,7 +215,7 @@ if port_in_use 3000; then
 else
   echo "Starting dev server..."
   cd "$SERVER_DIR"
-  nohup pnpm --filter server dev > "$ARTIFACTS_DIR/server-dev.log" 2>&1 &
+  nohup pnpm --filter server dev > "$RUNTIME_DIR/logs/server-dev.log" 2>&1 &
   DEV_PID=$!
   echo -n "Waiting for dev server"
   for i in $(seq 1 30); do
@@ -179,7 +229,7 @@ else
   done
   if ! port_in_use 3000; then
     echo ""
-    warn "Dev server start timeout — check log: $ARTIFACTS_DIR/server-dev.log"
+    warn "Dev server start timeout — check log: $RUNTIME_DIR/logs/server-dev.log"
   fi
 fi
 
@@ -199,7 +249,7 @@ if port_in_use 8000; then
 else
   echo "Starting dev server..."
   cd "$COMPUTE_DIR"
-  nohup cd packages/compute && python -m uvicorn app.main:app --reload --port 8000 > "$ARTIFACTS_DIR/compute-dev.log" 2>&1 &
+  nohup cd packages/compute && python -m uvicorn app.main:app --reload --port 8000 > "$RUNTIME_DIR/logs/compute-dev.log" 2>&1 &
   DEV_PID=$!
   echo -n "Waiting for dev server"
   for i in $(seq 1 30); do
@@ -213,65 +263,12 @@ else
   done
   if ! port_in_use 8000; then
     echo ""
-    warn "Dev server start timeout — check log: $ARTIFACTS_DIR/compute-dev.log"
+    warn "Dev server start timeout — check log: $RUNTIME_DIR/logs/compute-dev.log"
   fi
 fi
 
 cd "$HARNESS_ROOT"
 
-
-# =============================================================================
-# Session info + test report
-# =============================================================================
-echo ""
-info "--- Initializing test artifacts ---"
-
-cat > "$SESSION_DIR/session-info.json" <<EOF
-{
-  "session_id": "$SESSION_TS",
-  "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "directories": {
-    "screenshots": "$SESSION_DIR/screenshots",
-    "logs": "$SESSION_DIR/logs",
-    "test_results": "$SESSION_DIR/test-results"
-  }
-}
-EOF
-ok "session-info.json generated"
-
-cat > "$SESSION_DIR/test-report.md" <<'REPORT_EOF'
-# Test Report
-
-## Session Info
-- Start time: PLACEHOLDER_TIME
-- Task: (to be filled)
-
-## Test Steps
-
-| # | Step | Type | Result | Screenshot/Log | Notes |
-|---|------|------|--------|----------------|-------|
-| 1 | -    | -    | -      | -              | -     |
-
-## Build Verification
-- [ ] `pnpm --filter web build` passes
-- [ ] `pnpm --filter server lint` passes
-- [ ] `pnpm --filter server build` passes
-- [ ] `cd packages/compute &amp;&amp; python -m pytest tests/` passes
-
-## Browser Tests
-- [ ] Page loads correctly
-- [ ] Interactions work
-- [ ] Screenshots saved
-
-## Conclusion
-- Status: PENDING
-- Notes: (to be filled)
-REPORT_EOF
-
-sed -i '' "s/PLACEHOLDER_TIME/$(date '+%Y-%m-%d %H:%M:%S')/" "$SESSION_DIR/test-report.md" 2>/dev/null || \
-sed -i "s/PLACEHOLDER_TIME/$(date '+%Y-%m-%d %H:%M:%S')/" "$SESSION_DIR/test-report.md" 2>/dev/null
-
-ok "test-report.md template generated"
 
 # =============================================================================
 # Summary
@@ -284,6 +281,6 @@ echo ""
 echo -e "  web: ${GREEN}http://localhost:5173${NC}"
 echo -e "  server: ${GREEN}http://localhost:3000${NC}"
 echo -e "  compute: ${GREEN}http://localhost:8000${NC}"
-echo -e "  Artifacts: ${CYAN}$SESSION_DIR${NC}"
+echo -e "  Runtime: ${CYAN}$RUNTIME_DIR${NC} (gitignored)"
 echo ""
 echo "Ready to go."
