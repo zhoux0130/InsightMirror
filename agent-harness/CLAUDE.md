@@ -37,6 +37,45 @@ This will:
 
 **DO NOT skip this step.** Ensure the server is running before proceeding.
 
+### Step 1.5: 启动本地服务（铁律）
+
+> **⛔ 铁律：执行任何 task 之前，必须确保本地服务都已启动。违反此规则禁止继续执行 task。**
+
+**本地服务启动清单：**
+
+1. **启动 web**（如未运行）：
+   ```bash
+   cd packages/web/ && pnpm --filter web dev
+   ```
+   - 端口: 5173
+   - 验证: `curl -s http://localhost:5173/ | head -c 100` 能返回内容
+
+2. **启动 server**（如未运行）：
+   ```bash
+   cd packages/server/ && pnpm --filter server dev
+   ```
+   - 端口: 3000
+   - 验证: `curl -s http://localhost:3000/ | head -c 100` 能返回内容
+
+3. **启动 compute**（如未运行）：
+   ```bash
+   cd packages/compute/ && cd packages/compute && python -m uvicorn app.main:app --reload --port 8000
+   ```
+   - 端口: 8000
+   - 验证: `curl -s http://localhost:8000/ | head -c 100` 能返回内容
+
+
+**验证联通性：**
+- 在浏览器中访问前端页面，确认能正常加载
+- 如果出现 504/502/连接拒绝，说明后端未启动，必须先启动
+- 使用 `mcp__playwright__browser_navigate` 访问前端确认页面可达
+
+**禁止事项：**
+- ❌ 禁止依赖远程/测试环境进行开发测试
+- ❌ 禁止在后端未启动时进行浏览器测试
+- ❌ 禁止跳过服务联通性验证
+
+
 ### Step 2: Select Next Task
 
 Read `task.json` and select ONE task to work on.
@@ -56,82 +95,103 @@ Selection criteria (in order of priority):
 
 After implementation, verify ALL steps in the task.
 
-**Testing Requirements (MANDATORY):**
+**强制测试要求（Testing Requirements - MANDATORY）：**
 
-> **⛔ Rule: If task steps include browser testing but MCP Playwright is unavailable or browser testing cannot be executed, the task is BLOCKED. Do NOT mark passes: true, do NOT commit. Output blocking info and stop.**
+> **⛔ 铁律：如果任务步骤中包含浏览器测试，但 MCP Playwright 不可用或浏览器测试无法执行，则该任务视为「阻塞」，禁止标记 passes: true，禁止提交 commit。必须输出阻塞信息并停止。**
 
-1. **Major page changes** (new pages, component rewrites, core interaction changes):
-   - **MUST test in browser!** Use MCP Playwright tools
-   - Verify page loads and renders correctly
-   - Verify form submissions, button clicks, and other interactions
-   - Take screenshots to confirm correct UI display
+1. **大幅度页面修改**（新建页面、重写组件、修改核心交互）：
+   - **必须在浏览器中测试！** 使用 MCP Playwright 工具
+   - 使用 `mcp__playwright__browser_navigate` 打开页面
+   - 使用 `mcp__playwright__browser_snapshot` 获取页面无障碍快照（比截图更适合判断页面状态）
+   - 使用 `mcp__playwright__browser_click` / `mcp__playwright__browser_fill_form` 进行表单和交互操作
+   - 使用 `mcp__playwright__browser_take_screenshot` 截图确认 UI 正确显示
+   - 使用 `mcp__playwright__browser_wait_for` 等待异步内容加载
+   - 验证页面能正确加载和渲染
+   - 验证表单提交、按钮点击等交互功能
 
-2. **Minor code changes** (bug fixes, style adjustments, helper functions):
-   - Can verify with unit tests or lint/build
-   - If in doubt, still recommend browser testing
+2. **小幅度代码修改**（修复 bug、调整样式、添加辅助函数）：
+   - 可以使用单元测试或 lint/build 验证
+   - 如有疑虑，仍建议浏览器测试
 
-3. **All changes must pass:**
-   - web: `pnpm --filter web build` — build successful
-   - server: `pnpm --filter server lint` — no errors
-   - server: `pnpm --filter server build` — build successful
-   - compute: `cd packages/compute &amp;&amp; python -m pytest tests/` — build successful
-   - Browser/unit tests verify functionality works
+3. **所有修改必须通过：**
+   - web: `pnpm --filter web build` 构建成功
+   - server: `pnpm --filter server lint` 无错误
+   - server: `pnpm --filter server build` 构建成功
+   - compute: `cd packages/compute &amp;&amp; python -m pytest tests/` 构建成功
+   - 浏览器/单元测试验证功能正常
 
-**Browser Testing Credentials:**
+**测试环境账号（Browser Testing Credentials）：**
 
 ```
 
 
-微信 OAuth 登录，本地开发可能需要 mock 或测试账号
+支持用户名密码注册登录，agent 可自行注册测试账号；微信 OAuth 登录待审批
 ```
 
-**Browser Testing Best Practices:**
+**浏览器测试规范（Browser Testing Best Practices）：**
 
-1. **Login flow**: Open `http://localhost:5173`, login with test credentials
-2. **Navigate directly**: After login, go directly to the target page URL
-3. **Focus scope**: Only test functionality related to the current task
-4. **Screenshot key steps**: Page load, interactions, result verification
-5. **Screenshot on errors**: If errors occur, screenshot first, then debug
+1. **登录流程**：使用 `mcp__playwright__browser_navigate` 打开 `http://localhost:5173`，使用测试账号登录
+2. **直达目标页面**：登录成功后，使用 `mcp__playwright__browser_navigate` 直接导航到任务涉及的页面 URL，不要在无关页面停留
+3. **聚焦测试范围**：只验证当前 task 涉及的功能，不要测试无关模块
+4. **每个关键步骤截图**：使用 `mcp__playwright__browser_take_screenshot` 对页面加载、交互操作、结果验证各截一张
+5. **异常时截图留证**：如果遇到错误，先截图再排查
+6. **使用快照辅助判断**：操作前后使用 `mcp__playwright__browser_snapshot` 获取页面结构，确认元素存在和状态变化
 
-**Test Checklist:**
-- [ ] No compilation errors
-- [ ] web build succeeds
-- [ ] server lint passes
-- [ ] server build succeeds
-- [ ] compute build succeeds
-- [ ] Functionality works in browser (for UI changes)
+**浏览器测试标准流程：**
+```
+1. mcp__playwright__browser_navigate → 打开登录页
+2. mcp__playwright__browser_fill_form → 填写账号密码
+3. mcp__playwright__browser_click → 点击登录
+4. mcp__playwright__browser_wait_for → 等待登录成功
+5. mcp__playwright__browser_navigate → 导航到目标页面
+6. mcp__playwright__browser_snapshot → 获取页面快照，确认渲染正确
+7. mcp__playwright__browser_take_screenshot → 截图留证
+8. 执行交互操作（click / fill_form 等）
+9. mcp__playwright__browser_snapshot → 确认操作结果
+10. mcp__playwright__browser_take_screenshot → 截图留证
+```
 
-**Test Artifact Traceability (MANDATORY):**
+**测试清单：**
+- [ ] 代码没有编译错误
+- [ ] web build 成功
+- [ ] server lint 通过
+- [ ] server build 成功
+- [ ] compute build 成功
+- [ ] 功能在浏览器中正常工作（对于 UI 相关修改）
+- [ ] 关键步骤已截图保存
 
-Each test must leave complete evidence in `$AGENT_SESSION_DIR` (created by init.sh):
+**测试留痕（Test Artifact Traceability - MANDATORY）：**
 
-1. **Screenshots** → `../artifacts/screenshots/`
-   - Naming: `task{id}_step{n}_{description}.png`
-   - Screenshot every key browser testing step
-   - Screenshot error states too (for debugging)
+所有运行时产物保存在 `.runtime/`（gitignored，由 init.sh 创建）：
 
-2. **Logs** → `$AGENT_LOGS_DIR/`
-   - `0-build.log` — `pnpm --filter web build` full output
-   - `1-lint.log` — `pnpm --filter server lint` full output
-   - `1-build.log` — `pnpm --filter server build` full output
-   - `2-build.log` — `cd packages/compute &amp;&amp; python -m pytest tests/` full output
+1. **截图留痕** → `.runtime/screenshots/`
+   - 命名规则: `task{id}_step{n}_{描述}.png`，如 `task3_step1_login.png`
+   - 浏览器测试的每个关键步骤都要截图
+   - 错误状态也要截图（用于排查）
+   - 此目录已被 gitignore，截图为临时过程数据
 
-3. **Test report** → `$AGENT_SESSION_DIR/test-report.md`
-   - init.sh generates a template; agent must update after testing
-   - Fill in each test step result (PASS/FAIL)
-   - Link screenshots and log file paths
-   - Mark final conclusion (PASSED / FAILED / BLOCKED)
+2. **日志留痕** → `.runtime/logs/`
+   - `web-build.log` — `pnpm --filter web build` 的完整输出
+   - `server-lint.log` — `pnpm --filter server lint` 的完整输出
+   - `server-build.log` — `pnpm --filter server build` 的完整输出
+   - `compute-build.log` — `cd packages/compute &amp;&amp; python -m pytest tests/` 的完整输出
 
-4. **Build verification commands (with log redirect):**
+3. **测试报告** → `.runtime/test-report.md`
+   - init.sh 已生成模板，agent 需在测试完成后更新
+   - 填写每个测试步骤的结果（PASS/FAIL）
+   - 关联截图和日志文件路径
+   - 标注最终测试结论（PASSED / FAILED / BLOCKED）
+
+4. **构建验证命令（日志重定向）：**
    ```bash
    # web build
-   cd packages/web/ && pnpm --filter web build 2>&1 | tee "$AGENT_LOGS_DIR/0-build.log"
+   cd packages/web/ && pnpm --filter web build 2>&1 | tee "$AGENT_LOGS_DIR/web-build.log"
    # server lint
-   cd packages/server/ && pnpm --filter server lint 2>&1 | tee "$AGENT_LOGS_DIR/1-lint.log"
+   cd packages/server/ && pnpm --filter server lint 2>&1 | tee "$AGENT_LOGS_DIR/server-lint.log"
    # server build
-   cd packages/server/ && pnpm --filter server build 2>&1 | tee "$AGENT_LOGS_DIR/1-build.log"
+   cd packages/server/ && pnpm --filter server build 2>&1 | tee "$AGENT_LOGS_DIR/server-build.log"
    # compute build
-   cd packages/compute/ && cd packages/compute &amp;&amp; python -m pytest tests/ 2>&1 | tee "$AGENT_LOGS_DIR/2-build.log"
+   cd packages/compute/ && cd packages/compute &amp;&amp; python -m pytest tests/ 2>&1 | tee "$AGENT_LOGS_DIR/compute-build.log"
    ```
 
 
@@ -174,95 +234,65 @@ git commit -m "task#{id}: [task description] - completed"
 
 
 
-### Step 1.5: Start Local Services (Mandatory)
-
-> **⛔ Rule: Before executing any task, you MUST ensure all local services are running. Violating this rule means the task CANNOT proceed.**
-
-**Local service checklist:**
-
-1. **Start web** (if not running):
-   ```bash
-   cd packages/web/ && pnpm --filter web dev
-   ```
-   - Port: 5173
-
-2. **Start server** (if not running):
-   ```bash
-   cd packages/server/ && pnpm --filter server dev
-   ```
-   - Port: 3000
-
-3. **Start compute** (if not running):
-   ```bash
-   cd packages/compute/ && cd packages/compute && python -m uvicorn app.main:app --reload --port 8000
-   ```
-   - Port: 8000
-
-
-**Prohibited:**
-- ❌ Do NOT rely on remote/staging environments for development testing
-- ❌ Do NOT proceed with browser testing if services are not running
-
-
 ---
 
-## ⚠️ Blocking Issues
+## ⚠️ 阻塞处理（Blocking Issues）
 
-**If a task cannot complete testing or requires manual intervention, follow these rules:**
+**如果任务无法完成测试或需要人工介入，必须遵循以下规则：**
 
-### Situations requiring manual help:
+### 需要停止任务并请求人工帮助的情况：
 
-1. **Missing environment config**:
-   - Database, cache, or external service credentials not configured
-   - Dev proxy not pointing to a reachable backend
+1. **缺少环境配置**：
+   - 数据库、缓存、外部服务凭证未配置
+   - 前端代理地址未指向可用的后端
 
-2. **External dependencies unavailable**:
-   - Third-party API services down
-   - OAuth flows requiring manual authorization
-   - Services requiring paid upgrades
+2. **外部依赖不可用**：
+   - 第三方 API 服务宕机
+   - 需要人工授权的 OAuth 流程
+   - 需要付费升级的服务
 
-3. **Testing tools unavailable**:
-   - **MCP Playwright not installed or unavailable, but task requires browser testing** ← This is a blocker, cannot skip
-   - Dev server cannot start
-   - Backend not reachable
+3. **测试工具不可用**：
+   - **MCP Playwright 未安装或不可用，但任务要求浏览器测试** ← 这是阻塞，不能跳过
+   - dev server 无法启动
+   - 后端服务不可达
 
-4. **Tests cannot proceed**:
-   - Login requires real user accounts
-   - Functionality depends on undeployed external systems
-   - Requires specific hardware environment
+4. **测试无法进行**：
+   - 登录/注册功能需要真实用户账号
+   - 功能依赖外部系统尚未部署
+   - 需要特定硬件环境
 
-### Correct actions when blocked:
+### 阻塞时的正确操作：
 
-**DO NOT:**
-- ❌ Commit to git
-- ❌ Set task.json passes to true
-- ❌ Pretend the task is complete
+**DO NOT（禁止）：**
+- ❌ 提交 git commit
+- ❌ 将 task.json 的 passes 设为 true
+- ❌ 假装任务已完成
 
-**DO:**
-- ✅ Record progress and blocking reason in progress.txt
-- ✅ Output clear blocking info explaining what manual action is needed
-- ✅ Stop the task and wait for manual intervention
+**DO（必须）：**
+- ✅ 在 progress.txt 中记录当前进度和阻塞原因
+- ✅ 输出清晰的阻塞信息，说明需要人工做什么
+- ✅ 停止任务，等待人工介入
 
-### Blocking info format:
+### 阻塞信息格式：
 
 ```
-🚫 Task Blocked - Manual Intervention Required
+🚫 任务阻塞 - 需要人工介入
 
-**Current task**: [task name]
+**当前任务**: [任务名称]
 
-**Completed work**:
-- [code/config already done]
+**已完成的工作**:
+- [已完成的代码/配置]
 
-**Blocking reason**:
-- [specific explanation of why it cannot continue]
+**阻塞原因**:
+- [具体说明为什么无法继续]
 
-**Manual help needed**:
-1. [specific step 1]
-2. [specific step 2]
+**需要人工帮助**:
+1. [具体的步骤 1]
+2. [具体的步骤 2]
 ...
 
-**After unblocking**:
-- Run [command] to continue the task
+**解除阻塞后**:
+- 运行 [命令] 继续任务
 ```
 
 
@@ -276,7 +306,11 @@ git commit -m "task#{id}: [task description] - completed"
 │   ├── CLAUDE.md               # This file - workflow instructions
 │   ├── task.json               # Task definitions (source of truth)
 │   ├── progress.txt            # Session progress log
-│   └── init.sh                 # Init script
+│   ├── init.sh                 # Init script
+│   └── .runtime/                # Runtime artifacts (gitignored)
+│       ├── screenshots/        # Browser test screenshots
+│       ├── logs/               # Build & lint logs
+│       └── test-report.md      # Test results
 ├── web/
 ├── server/
 ├── compute/
@@ -330,15 +364,16 @@ cd packages/compute && python -m pytest tests/  # Build
 
 ## Key Rules
 
-1. **One task per session** - Focus on completing one task well
-2. **Test before marking complete** - All steps must pass
-3. **Browser testing for UI changes** - New pages or major modifications MUST be browser tested
-4. **Document in progress.txt** - Help future agents understand your work
-5. **One commit per task** - All changes (code, progress.txt, task.json) must be committed together
-6. **Never remove tasks** - Only flip `passes: false` to `true`
-7. **Stop if blocked** - When manual intervention is needed, do not commit; output blocking info and stop
-9. **Artifacts** - Save test screenshots, logs, and traces to `$AGENT_SESSION_DIR` (created by init.sh), each session gets its own directory
-10. **Test traceability** - After each task, update `test-report.md` to ensure screenshots, logs, and test results are traceable
+1. **One task per session** - 专注完成一个任务
+2. **Test before marking complete** - 所有步骤必须通过验证
+3. **Browser testing for UI changes** - 新建或大幅修改页面必须使用 MCP Playwright 在浏览器中测试，不能跳过
+4. **Document in progress.txt** - 帮助后续 agent 理解你的工作
+5. **One commit per task** - 所有更改（代码、progress.txt、task.json）必须在同一个 commit 中提交
+6. **Never remove tasks** - 只能将 `passes: false` 改为 `true`
+7. **Stop if blocked** - 需要人工介入时，不要提交，输出阻塞信息并停止
+9. **Artifacts** - 测试截图、日志、trace 等产物保存到 `$AGENT_RUNTIME_DIR` 目录（由 init.sh 创建），gitignored
+10. **Test traceability** - 每个 task 完成后必须更新 `test-report.md`，确保截图、日志、TC 结果可追溯
+11. **MCP Playwright 是必备工具** - 如果 MCP Playwright 不可用，涉及 UI 的任务视为阻塞，禁止标记完成
 
 
 ---

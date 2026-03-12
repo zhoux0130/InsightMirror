@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # Scheduler
     scheduler_enabled: bool = True
-    scheduler_hour: int = 10    # UTC 10:00 = Beijing 18:00
+    scheduler_hour: int = 1     # UTC 01:00 = Beijing 09:00
     scheduler_minute: int = 0
 
     model_config = {"env_prefix": "", "case_sensitive": False}

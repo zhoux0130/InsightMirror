@@ -9,19 +9,22 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  avatar    String?
-  mobile    String?   @unique
-  bio       String?
-  email     String?   @unique
-  nickname  String?
-  phone     String?   @unique
-  oauths    OAuth[]
-  sessions  Session[]
-  baskets   Basket[]
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  username     String?   @unique
+  passwordHash String?   @map("password_hash")
+  avatar       String?
+  mobile       String?   @unique
+  bio          String?
+  email        String?   @unique
+  nickname     String?
+  phone        String?   @unique
+  oauths       OAuth[]
+  sessions     Session[]
+  baskets      Basket[]
 
+  @@index([username])
   @@index([email])
   @@index([mobile])
   @@index([phone])

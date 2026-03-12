@@ -1064,32 +1064,88 @@ blockquote {
 }
 
 .login-error {
-  padding: 16px 0;
-  color: var(--danger);
-  font-size: 0.92rem;
-}
-
-.wx-qr-container {
-  margin: 0 auto 16px;
-}
-
-.wx-qr-container iframe {
-  border: none;
-  width: 100%;
-  min-height: 360px;
-}
-
-.login-wx-btn {
-  display: inline-flex;
-  width: 100%;
-  justify-content: center;
+  padding: 10px 14px;
   margin-bottom: 12px;
-  text-decoration: none;
+  border-radius: 12px;
+  background: rgba(178, 74, 61, 0.08);
+  color: var(--danger);
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-field span {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.login-field input {
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  font-size: 0.95rem;
+  transition: border-color 0.15s;
+}
+
+.login-field input:focus {
+  border-color: var(--accent);
+}
+
+.login-submit {
+  width: 100%;
+  height: 46px;
+  margin-top: 4px;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.login-switch {
+  margin-top: 16px;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.login-switch button {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .login-back-btn {
   width: 100%;
   justify-content: center;
+  margin-top: 6px;
 }
 
 /* ── PC wide layout ───────────────────────────────── */

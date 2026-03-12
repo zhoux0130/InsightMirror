@@ -1,4 +1,4 @@
-# Agent Harness - generated files can be committed
-# But ignore local artifacts
+# Runtime artifacts (screenshots, logs, session data) — never commit
+.runtime/
 *.log
 .DS_Store
