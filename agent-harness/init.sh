@@ -56,6 +56,9 @@ if [ ! -d "$COMPUTE_DIR" ]; then
 fi
 ok "compute/ ready"
 
+echo ""
+info "--- Local harness bootstrap ---"
+"$PROJECT_ROOT/scripts/setup-local-agent-harness.sh" || warn "Local agent harness bootstrap skipped"
 
 # =============================================================================
 # 2. Prepare runtime directory (screenshots, logs, session data)

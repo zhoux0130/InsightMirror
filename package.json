@@ -14,7 +14,9 @@
     "dev:digest": "pnpm --filter @insight-mirror/group-digest dev",
     "build:digest": "pnpm --filter @insight-mirror/group-digest build",
     "start:server": "pnpm --filter server start",
-    "install:all": "pnpm install"
+    "install:all": "pnpm install",
+    "check:no-local-links": "node scripts/verify-no-local-link-deps.mjs",
+    "harness:link-local": "bash scripts/setup-local-agent-harness.sh"
   },
   "keywords": [
     "nodejs",
@@ -27,7 +29,6 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "agent-harness-kit": "link:/Users/zhouxue/project/agent-harness-kit",
     "typescript": "^5.3.3"
   }
 }
