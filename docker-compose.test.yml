@@ -1,3 +1,5 @@
+name: insightmirror-test
+
 services:
   postgres:
     profiles:
@@ -19,3 +21,7 @@ services:
       postgres:
         condition: service_healthy
         required: false
+
+  web:
+    ports:
+      - "${EPORT:-9001}:80"
