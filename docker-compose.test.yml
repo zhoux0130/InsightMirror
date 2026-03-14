@@ -6,6 +6,8 @@ services:
       - disabled
 
   server:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql://postgres:sf5mxikWU6nBf8qmXZqU7q4yIdQJ5JP9@host.docker.internal:65435/insight_mirror_test
       COMPUTE_SERVICE_URL: http://compute:8000
@@ -15,6 +17,8 @@ services:
         required: false
 
   compute:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql://postgres:sf5mxikWU6nBf8qmXZqU7q4yIdQJ5JP9@host.docker.internal:65435/insight_mirror_test
     depends_on:
