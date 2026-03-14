@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 import Home from './pages/Home';
 import BasketList from './pages/BasketList';
 import BasketDetail from './pages/BasketDetail';
@@ -65,13 +64,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

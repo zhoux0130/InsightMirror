@@ -23,42 +23,6 @@
   --shadow: 0 18px 50px rgba(47, 31, 31, 0.08);
 }
 
-[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #1a1a1e;
-  --bg-accent: radial-gradient(circle at top right, rgba(45, 143, 78, 0.20), transparent 38%);
-  --surface: rgba(38, 38, 42, 0.85);
-  --surface-strong: rgba(48, 48, 52, 0.95);
-  --border: rgba(255, 255, 255, 0.08);
-  --text: #e8e0de;
-  --muted: #9a9090;
-  --accent: #3db86a;
-  --accent-soft: rgba(61, 184, 106, 0.15);
-  --positive: #3db86a;
-  --negative: #e05050;
-  --danger: #d45a4d;
-  --pill: #2e2e32;
-  --shadow: 0 18px 50px rgba(0, 0, 0, 0.30);
-}
-
-[data-theme="dark"] body {
-  background:
-    var(--bg-accent),
-    linear-gradient(180deg, #1e1e22 0%, var(--bg) 100%);
-}
-
-[data-theme="dark"] .hero {
-  background: linear-gradient(135deg, rgba(38, 38, 42, 0.96), rgba(30, 30, 34, 0.88));
-}
-
-[data-theme="dark"] .login-error {
-  background: rgba(212, 90, 77, 0.12);
-}
-
-[data-theme="dark"] .user-avatar-placeholder {
-  background: linear-gradient(135deg, #3db86a, #2d8f4e);
-}
-
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
@@ -1065,31 +1029,6 @@ blockquote {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* ── Theme toggle ─────────────────────────────────── */
-
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  color: var(--muted);
-  transition: color 0.2s, background 0.2s;
-  flex-shrink: 0;
-}
-
-.theme-toggle:hover {
-  color: var(--text);
-  background: var(--accent-soft);
-}
-
-.theme-toggle svg {
-  width: 18px;
-  height: 18px;
 }
 
 /* ── Login page ───────────────────────────────────── */
