@@ -3,6 +3,7 @@ import api from './api';
 export interface StockOption {
   symbol: string;
   name: string;
+  market: string;
   lastTradeDate: string;
 }
 
@@ -87,8 +88,9 @@ type ApiEnvelope<T> = {
   error?: string;
 };
 
-export async function listStockOptions(): Promise<StockOption[]> {
-  const response = await api.get<ApiEnvelope<StockOption[]>, ApiEnvelope<StockOption[]>>('/stocks/options');
+export async function listStockOptions(market?: 'CN' | 'US'): Promise<StockOption[]> {
+  const url = market ? `/stocks/options?market=${market}` : '/stocks/options';
+  const response = await api.get<ApiEnvelope<StockOption[]>, ApiEnvelope<StockOption[]>>(url);
   return response.data;
 }
 

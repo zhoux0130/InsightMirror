@@ -77,66 +77,72 @@ model Setting {
 }
 
 model SecurityMaster {
-  symbol      String    @id
-  name        String
-  exchange    String
-  listDate    DateTime? @map("list_date") @db.Date
-  delistDate  DateTime? @map("delist_date") @db.Date
-  listStatus  String    @map("list_status") @default("listed")
-  source      String    @default("akshare")
-  createdAt   DateTime  @map("created_at") @default(now())
-  updatedAt   DateTime  @map("updated_at") @default(now()) @updatedAt
+  symbol     String    @id
+  name       String
+  market     String    @default("CN") @db.VarChar(4) // CN | US
+  exchange   String
+  listDate   DateTime? @map("list_date") @db.Date
+  delistDate DateTime? @map("delist_date") @db.Date
+  listStatus String    @default("listed") @map("list_status")
+  source     String    @default("akshare")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at")
 
+  @@index([market])
   @@index([exchange])
   @@index([listStatus])
   @@map("security_master")
 }
 
 model DailyBar {
-  symbol     String
-  tradeDate  DateTime   @map("trade_date") @db.Date
-  open       Decimal    @db.Decimal(12, 4)
-  high       Decimal    @db.Decimal(12, 4)
-  low        Decimal    @db.Decimal(12, 4)
-  close      Decimal    @db.Decimal(12, 4)
-  volume     BigInt
-  amount     Decimal?   @db.Decimal(18, 2)
-  turnover   Decimal?   @db.Decimal(8, 4)
-  pctChange  Decimal?   @map("pct_change") @db.Decimal(8, 4)
-  createdAt  DateTime   @map("created_at") @default(now())
+  symbol    String
+  tradeDate DateTime @map("trade_date") @db.Date
+  market    String   @default("CN") @db.VarChar(4) // CN | US
+  open      Decimal  @db.Decimal(12, 4)
+  high      Decimal  @db.Decimal(12, 4)
+  low       Decimal  @db.Decimal(12, 4)
+  close     Decimal  @db.Decimal(12, 4)
+  volume    BigInt
+  amount    Decimal? @db.Decimal(18, 2)
+  turnover  Decimal? @db.Decimal(8, 4)
+  pctChange Decimal? @map("pct_change") @db.Decimal(8, 4)
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@id([symbol, tradeDate])
   @@index([symbol, tradeDate(sort: Desc)])
+  @@index([market, tradeDate(sort: Desc)])
   @@map("daily_bar")
 }
 
 model SegmentIndex {
   id             BigInt   @id @default(autoincrement())
   symbol         String
+  market         String   @default("CN") @db.VarChar(4) // CN | US
   startDate      DateTime @map("start_date") @db.Date
   endDate        DateTime @map("end_date") @db.Date
-  windowSize     Int      @map("window_size") @default(60) @db.SmallInt
-  featureVersion String   @map("feature_version") @default("v1")
-  createdAt      DateTime @map("created_at") @default(now())
+  windowSize     Int      @default(60) @map("window_size") @db.SmallInt
+  featureVersion String   @default("v1") @map("feature_version")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@unique([symbol, endDate, windowSize, featureVersion])
   @@index([symbol, endDate(sort: Desc)])
+  @@index([market])
   @@index([featureVersion])
   @@index([endDate])
   @@map("segment_index")
 }
 
 model SegmentFutureLabel {
-  segmentId    BigInt    @map("segment_id")
-  futureDays   Int       @map("future_days") @default(20) @db.SmallInt
-  returnRate   Decimal?  @map("return_rate") @db.Decimal(8, 4)
-  maxDrawdown  Decimal?  @map("max_drawdown") @db.Decimal(8, 4)
-  maxProfit    Decimal?  @map("max_profit") @db.Decimal(8, 4)
-  sharpeRatio  Decimal?  @map("sharpe_ratio") @db.Decimal(8, 4)
-  winFlag      Boolean?  @map("win_flag")
-  labelStatus  String    @map("label_status") @default("pending")
-  filledAt     DateTime? @map("filled_at")
-  createdAt    DateTime  @map("created_at") @default(now())
+  segmentId   BigInt    @map("segment_id")
+  futureDays  Int       @default(20) @map("future_days") @db.SmallInt
+  returnRate  Decimal?  @map("return_rate") @db.Decimal(8, 4)
+  maxDrawdown Decimal?  @map("max_drawdown") @db.Decimal(8, 4)
+  maxProfit   Decimal?  @map("max_profit") @db.Decimal(8, 4)
+  sharpeRatio Decimal?  @map("sharpe_ratio") @db.Decimal(8, 4)
+  winFlag     Boolean?  @map("win_flag")
+  labelStatus String    @default("pending") @map("label_status")
+  filledAt    DateTime? @map("filled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@id([segmentId])
   @@index([labelStatus])
@@ -144,13 +150,13 @@ model SegmentFutureLabel {
 }
 
 model FeatureVersionConfig {
-  version      String   @id
-  description  String?
-  featureDim   Int      @map("feature_dim") @db.SmallInt
-  featureParams Json    @map("feature_params")
-  status       String   @default("active")
-  isDefault    Boolean  @map("is_default") @default(false)
-  createdAt    DateTime @map("created_at") @default(now())
+  version       String   @id
+  description   String?
+  featureDim    Int      @map("feature_dim") @db.SmallInt
+  featureParams Json     @map("feature_params")
+  status        String   @default("active")
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("feature_version_config")
 }
@@ -158,6 +164,7 @@ model FeatureVersionConfig {
 model Basket {
   id          String        @id @default(cuid())
   userId      String        @map("user_id")
+  market      String        @default("CN") @db.VarChar(4) // CN | US
   name        String
   description String?
   capital     Decimal       @default(100000) @db.Decimal(14, 2)
@@ -170,6 +177,7 @@ model Basket {
   positions   Position[]
 
   @@index([userId])
+  @@index([userId, market])
   @@map("baskets")
 }
 
@@ -197,18 +205,18 @@ model BasketRule {
 }
 
 model Position {
-  id          String    @id @default(cuid())
-  basketId    String    @map("basket_id")
+  id          String      @id @default(cuid())
+  basketId    String      @map("basket_id")
   symbol      String
-  buyDate     DateTime  @map("buy_date") @db.Date
-  buyPrice    Decimal   @map("buy_price") @db.Decimal(12, 4)
+  buyDate     DateTime    @map("buy_date") @db.Date
+  buyPrice    Decimal     @map("buy_price") @db.Decimal(12, 4)
   shares      Int
-  sellDate    DateTime? @map("sell_date") @db.Date
-  sellPrice   Decimal?  @map("sell_price") @db.Decimal(12, 4)
-  triggerType String    @default("manual") @map("trigger_type")
-  ruleId      String?   @map("rule_id")
+  sellDate    DateTime?   @map("sell_date") @db.Date
+  sellPrice   Decimal?    @map("sell_price") @db.Decimal(12, 4)
+  triggerType String      @default("manual") @map("trigger_type")
+  ruleId      String?     @map("rule_id")
   note        String?
-  basket      Basket    @relation(fields: [basketId], references: [id], onDelete: Cascade)
+  basket      Basket      @relation(fields: [basketId], references: [id], onDelete: Cascade)
   rule        BasketRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
 
   @@index([basketId])
@@ -219,6 +227,7 @@ model Position {
 model PipelineRunLog {
   id               BigInt    @id @default(autoincrement())
   runDate          DateTime  @map("run_date") @db.Date
+  market           String    @default("CN") @db.VarChar(4) // CN | US
   stepName         String    @map("step_name")
   status           String
   startedAt        DateTime  @map("started_at")
@@ -226,6 +235,6 @@ model PipelineRunLog {
   recordsProcessed Int?      @map("records_processed")
   errorMessage     String?   @map("error_message")
 
-  @@unique([runDate, stepName])
+  @@unique([runDate, market, stepName])
   @@map("pipeline_run_log")
 }

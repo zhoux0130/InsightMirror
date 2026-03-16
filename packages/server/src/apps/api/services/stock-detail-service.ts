@@ -17,9 +17,12 @@ type DetailQuery = {
   topK?: number;
 };
 
+type Market = 'CN' | 'US';
+
 type StockOptionRow = {
   symbol: string;
   name: string;
+  market: string;
   last_trade_date: Date;
 };
 
@@ -62,6 +65,7 @@ export interface SimilarityBreakdown {
 export interface StockOption {
   symbol: string;
   name: string;
+  market: string;
   lastTradeDate: string;
 }
 
@@ -280,24 +284,40 @@ export class StockDetailService {
     private readonly pgvector: PgVectorService
   ) {}
 
-  async listOptions(): Promise<StockOption[]> {
-    const rows = await this.prisma.$queryRaw<StockOptionRow[]>`
-      SELECT sm.symbol, sm.name, MAX(db.trade_date) AS last_trade_date
-      FROM security_master sm
-      JOIN daily_bar db ON db.symbol = sm.symbol
-      WHERE EXISTS (
-        SELECT 1 FROM segment_index si
-        WHERE si.symbol = sm.symbol
-          AND si.window_size = 60
-          AND si.feature_version = 'v1'
-      )
-      GROUP BY sm.symbol, sm.name
-      ORDER BY sm.symbol ASC
-    `;
+  async listOptions(market?: Market): Promise<StockOption[]> {
+    const rows = market
+      ? await this.prisma.$queryRaw<StockOptionRow[]>`
+          SELECT sm.symbol, sm.name, sm.market, MAX(db.trade_date) AS last_trade_date
+          FROM security_master sm
+          JOIN daily_bar db ON db.symbol = sm.symbol
+          WHERE sm.market = ${market}
+            AND EXISTS (
+              SELECT 1 FROM segment_index si
+              WHERE si.symbol = sm.symbol
+                AND si.window_size = 60
+                AND si.feature_version = 'v1'
+            )
+          GROUP BY sm.symbol, sm.name, sm.market
+          ORDER BY sm.symbol ASC
+        `
+      : await this.prisma.$queryRaw<StockOptionRow[]>`
+          SELECT sm.symbol, sm.name, sm.market, MAX(db.trade_date) AS last_trade_date
+          FROM security_master sm
+          JOIN daily_bar db ON db.symbol = sm.symbol
+          WHERE EXISTS (
+            SELECT 1 FROM segment_index si
+            WHERE si.symbol = sm.symbol
+              AND si.window_size = 60
+              AND si.feature_version = 'v1'
+          )
+          GROUP BY sm.symbol, sm.name, sm.market
+          ORDER BY sm.symbol ASC
+        `;
 
     return rows.map((row) => ({
       symbol: row.symbol,
       name: row.name,
+      market: row.market,
       lastTradeDate: formatDate(row.last_trade_date),
     }));
   }

@@ -7,3 +7,5 @@ export const services = {
   $session: SessionService,
   $pgvector: PgVectorServiceFactory,
 };
+
+export * from './yahoo-finance';

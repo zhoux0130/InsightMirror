@@ -5,6 +5,12 @@ import { createStockDetailService, StockDetailError } from '../services/stock-de
 const StockOptionsSchema = {
   summary: '股票选项列表',
   tags: ['stocks'],
+  querystring: {
+    type: 'object',
+    properties: {
+      market: { type: 'string', enum: ['CN', 'US'] },
+    },
+  },
 };
 
 const StockDetailSchema = {
@@ -30,17 +36,24 @@ export const StockController = (fastify: FastifyInstance) => {
   const app = fastify as Application;
   const service = createStockDetailService(app);
 
-  app.get('/options', { schema: StockOptionsSchema }, async (_request, reply) => {
-    try {
-      const data = await service.listOptions();
-      return { success: true, data };
-    } catch (error: any) {
-      reply.code(500).send({
-        success: false,
-        error: error.message || 'Failed to load stock options',
-      });
+  app.get(
+    '/options',
+    { schema: StockOptionsSchema },
+    async (
+      request: FastifyRequest<{ Querystring: { market?: 'CN' | 'US' } }>,
+      reply: FastifyReply
+    ) => {
+      try {
+        const data = await service.listOptions(request.query.market);
+        return { success: true, data };
+      } catch (error: any) {
+        reply.code(500).send({
+          success: false,
+          error: error.message || 'Failed to load stock options',
+        });
+      }
     }
-  });
+  );
 
   app.get(
     '/:symbol/detail',
