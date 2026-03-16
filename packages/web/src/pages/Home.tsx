@@ -5,8 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const FAVORITES_KEY = 'insightmirror:favorites';
 
+type Market = 'CN' | 'US';
+const MARKET_KEY = 'insightmirror:market';
+
+function loadMarket(): Market {
+  const stored = localStorage.getItem(MARKET_KEY);
+  return stored === 'US' ? 'US' : 'CN';
+}
+
 function Home() {
   const { user, isLoggedIn, logout } = useAuth();
+  const [market, setMarket] = useState<Market>(loadMarket);
   const [options, setOptions] = useState<StockOption[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -22,14 +31,21 @@ function Home() {
   const isFavorite = selectedSymbol.length > 0 && favorites.includes(selectedSymbol);
 
   useEffect(() => {
-    void bootstrap();
-  }, []);
+    void bootstrap(market);
+  }, [market]);
 
-  async function bootstrap() {
+  async function handleMarketChange(next: Market) {
+    if (next === market) return;
+    setMarket(next);
+    localStorage.setItem(MARKET_KEY, next);
+    setDetail(null);
+  }
+
+  async function bootstrap(mkt: Market) {
     try {
       setLoading(true);
       setError('');
-      const stockOptions = await listStockOptions();
+      const stockOptions = await listStockOptions(mkt);
       setOptions(stockOptions);
 
       if (stockOptions.length === 0) {
@@ -124,6 +140,26 @@ function Home() {
         </nav>
 
         <form className="query-panel" onSubmit={handleQuery}>
+          <div className="field">
+            <span>市场</span>
+            <div className="tab-bar market-tabs">
+              <button
+                type="button"
+                className={`tab-item${market === 'CN' ? ' active' : ''}`}
+                onClick={() => handleMarketChange('CN')}
+              >
+                A 股
+              </button>
+              <button
+                type="button"
+                className={`tab-item${market === 'US' ? ' active' : ''}`}
+                onClick={() => handleMarketChange('US')}
+              >
+                美股
+              </button>
+            </div>
+          </div>
+
           <label className="field">
             <span>股票</span>
             <select value={selectedSymbol} onChange={(event) => handleSymbolChange(event.target.value)}>
