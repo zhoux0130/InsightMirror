@@ -18,5 +18,99 @@
       "path": "packages/compute/"
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Compute: Yahoo Finance 数据源集成",
+      "module": "compute",
+      "description": "在 compute 模块中集成 Yahoo Finance 数据源，支持获取美股元数据和历史日线数据。包括数据源工厂扩展，使 market='US' 时自动选用 yahoo 数据源。",
+      "steps": [
+        "实现 YahooFinanceDataSource 类（app/data/yahoo.py），支持 get_stock_metadata(symbol) 和 fetch_daily(symbol, start, end)",
+        "数据源工厂 factory.py 支持 source_name='yahoo'，get_data_source('yahoo') 返回 YahooFinanceDataSource 实例",
+        "Yahoo API 调用包含重试、限流处理（429 状态码退避）",
+        "python -m pytest tests/ 通过（含 6 个 Yahoo 数据源专用测试）"
+      ],
+      "passes": true
+    },
+    {
+      "id": 2,
+      "title": "Compute: 美股数据初始化脚本",
+      "module": "compute",
+      "description": "编写 CLI 脚本 scripts/init_us_stocks.py，支持批量初始化美股数据：注册 security_master → 拉取历史日线 → 构建 segment + feature → 回填 label → 重建 HNSW 索引。",
+      "steps": [
+        "脚本支持 --symbols AAPL,MSFT,TSLA --start 2020-01-01 --skip-hnsw 等参数",
+        "Step 1: 调用 Yahoo API 获取元数据，upsert 到 security_master（market='US', source='yahoo'）",
+        "Step 2: 拉取历史日线数据，upsert 到 daily_bar（market='US'）",
+        "Step 3: 调用 build_full_segments 构建 segment_index + segment_feature（60 日窗口 + v1 特征向量）",
+        "Step 4: 调用 backfill_full_labels 回填 segment_future_label",
+        "Step 5: 可选重建 HNSW 索引（--skip-hnsw 跳过）",
+        "python -m scripts.init_us_stocks --symbols AAPL --start 2024-01-01 --skip-hnsw 能成功执行"
+      ],
+      "passes": true
+    },
+    {
+      "id": 3,
+      "title": "Compute: EOD Pipeline API 支持 market 参数",
+      "module": "compute",
+      "description": "扩展 /compute/v1/pipeline/eod 和 /compute/v1/pipeline/backfill 接口，支持 market 参数（CN/US），使美股也能通过 API 触发每日数据更新。",
+      "steps": [
+        "PipelineRequest 和 BackfillRequest 模型增加 market 字段（可选，默认 'CN'，枚举 CN/US）",
+        "trigger_eod 接口将 market 传递给 orchestrator.run_eod(run_date, market=market)",
+        "backfill 接口同样传递 market 参数",
+        "POST /compute/v1/pipeline/eod {\"market\": \"US\"} 正确触发美股 pipeline",
+        "GET /compute/v1/pipeline/status 返回的结果能区分 CN/US market",
+        "python -m pytest tests/ 通过"
+      ],
+      "passes": false
+    },
+    {
+      "id": 4,
+      "title": "Server: 股票接口支持市场筛选",
+      "module": "server",
+      "description": "后端 /api/stocks/options 接口支持 ?market=CN|US 查询参数，按市场筛选可用股票列表；/api/stocks/:symbol/detail 接口能正确处理美股 symbol。",
+      "steps": [
+        "GET /api/stocks/options?market=US 只返回 market='US' 的股票（需 security_master + daily_bar + segment_index 数据均存在）",
+        "GET /api/stocks/options?market=CN 只返回 market='CN' 的股票",
+        "GET /api/stocks/options 不传 market 时返回所有市场股票",
+        "GET /api/stocks/AAPL/detail 能正确返回美股详情（当 AAPL 数据存在时）",
+        "pnpm --filter server build 成功",
+        "pnpm --filter server lint 无错误"
+      ],
+      "passes": false
+    },
+    {
+      "id": 5,
+      "title": "Frontend: 市场选择器 & 股票列表按市场筛选",
+      "module": "web",
+      "description": "Home 页面增加 A 股 / 美股 市场切换 Tab，切换时重新拉取对应市场的股票列表，市场偏好存储到 localStorage。",
+      "steps": [
+        "页面顶部 query-panel 中展示「A 股」「美股」两个 Tab，默认选中 A 股",
+        "点击「美股」Tab 后，股票下拉列表刷新为美股列表（调用 listStockOptions('US')）",
+        "切换市场时清空当前详情，自动加载新市场第一只股票的详情",
+        "市场选择持久化到 localStorage（key: insightmirror:market），刷新页面后保持上次选择",
+        "美股列表为空时展示友好的空状态提示",
+        "pnpm --filter web build 成功",
+        "浏览器中切换 A 股 / 美股 Tab 功能正常"
+      ],
+      "passes": false
+    },
+    {
+      "id": 6,
+      "title": "E2E: 美股数据初始化 & 全流程验证",
+      "module": "all",
+      "description": "执行美股数据初始化（至少 AAPL、MSFT、TSLA），验证从数据灌入到前端展示的完整链路。",
+      "steps": [
+        "执行 python -m scripts.init_us_stocks --symbols AAPL,MSFT,TSLA --start 2023-01-01 成功",
+        "数据库中 security_master 存在 AAPL/MSFT/TSLA（market='US'）",
+        "数据库中 daily_bar 存在对应美股日线数据",
+        "数据库中 segment_index + segment_feature 存在对应特征向量",
+        "GET /api/stocks/options?market=US 返回 AAPL、MSFT、TSLA",
+        "GET /api/stocks/AAPL/detail 返回完整的结构诊断数据",
+        "前端切换到「美股」Tab，下拉列表显示 AAPL/MSFT/TSLA",
+        "选择 AAPL 后页面展示完整的个股结构诊断（评级、建议区间、情绪温度、相似样本等）",
+        "浏览器截图确认美股展示效果"
+      ],
+      "passes": false
+    }
+  ]
 }

@@ -1,2 +1,23 @@
 # Progress Log
 
+## 2026-03-17 - Task 1: Compute: Yahoo Finance 数据源集成
+
+### What was done:
+- 验证已有代码：YahooFinanceDataSource（app/data/yahoo.py）实现了 get_stock_metadata + fetch_daily
+- 验证数据源工厂：factory.py 中 get_data_source('yahoo') 正确返回 YahooFinanceDataSource
+- 验证重试逻辑：_fetch_json 包含 retry + 429 限流退避
+- 新增 6 个单元测试（tests/data/test_yahoo_source.py）：
+  - test_get_stock_metadata_parses_yahoo_response
+  - test_get_stock_metadata_returns_empty_on_no_result
+  - test_fetch_daily_parses_ohlcv_and_computes_pct_change
+  - test_fetch_daily_skips_rows_with_none_values
+  - test_factory_returns_yahoo_source
+  - test_fetch_json_retries_on_429
+
+### Testing:
+- python -m pytest tests/ → 14 passed (含原有 8 个 + 新增 6 个 Yahoo 测试)
+
+### Notes:
+- Yahoo Finance API 使用 v8/finance/chart endpoint，无需 API key
+- 数据源通过 mock _fetch_json 进行测试，不依赖外部网络
+
