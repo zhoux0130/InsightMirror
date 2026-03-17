@@ -21,8 +21,13 @@ class PipelineOrchestrator:
     def __init__(self, db: Session):
         self.db = db
 
-    def run_eod(self, run_date: date | None = None) -> dict:
-        """Run the end-of-day pipeline."""
+    def run_eod(self, run_date: date | None = None, market: str = "CN") -> dict:
+        """Run the end-of-day pipeline.
+
+        Args:
+            run_date: The date to run the pipeline for.
+            market: 'CN' for A-shares (via akshare) or 'US' for US stocks (via yahoo).
+        """
         run_date = run_date or date.today()
         results = {}
 
@@ -34,23 +39,24 @@ class PipelineOrchestrator:
         ]
 
         for step_name, step_fn in steps:
-            self._log_step(run_date, step_name, "running")
+            self._log_step(run_date, step_name, "running", market=market)
             try:
-                count = step_fn(run_date)
-                self._log_step(run_date, step_name, "success", count)
+                count = step_fn(run_date, market=market)
+                self._log_step(run_date, step_name, "success", count, market=market)
                 results[step_name] = {"status": "success", "records": count}
             except Exception as e:
                 logger.error(f"Pipeline step {step_name} failed: {e}")
-                self._log_step(run_date, step_name, "failed", error=str(e))
+                self._log_step(run_date, step_name, "failed", error=str(e), market=market)
                 results[step_name] = {"status": "failed", "error": str(e)}
                 break  # Stop pipeline on failure
 
         return results
 
-    def _step_fetch_daily_bar(self, run_date: date) -> int:
+    def _step_fetch_daily_bar(self, run_date: date, *, market: str = "CN") -> int:
         """Fetch daily bars from data source and store in DB."""
+        source_name = "yahoo" if market == "US" else None
         try:
-            ds = get_data_source()
+            ds = get_data_source(source_name)
         except Exception as exc:
             logger.warning("Data source unavailable, skipping fetch: %s", exc)
             return 0
@@ -59,9 +65,10 @@ class PipelineOrchestrator:
             SELECT symbol
             FROM security_master
             WHERE list_status IN ('listed', 'suspended')
+              AND market = :market
             ORDER BY symbol
         """)
-        symbols = [row[0] for row in self.db.execute(sql).fetchall()]
+        symbols = [row[0] for row in self.db.execute(sql, {"market": market}).fetchall()]
 
         count = 0
         for symbol in symbols:
@@ -69,8 +76,8 @@ class PipelineOrchestrator:
                 bars = ds.fetch_daily(symbol, run_date, run_date)
                 for bar in bars:
                     self.db.execute(text("""
-                        INSERT INTO daily_bar (symbol, trade_date, open, high, low, close, volume, amount, turnover, pct_change)
-                        VALUES (:symbol, :trade_date, :open, :high, :low, :close, :volume, :amount, :turnover, :pct_change)
+                        INSERT INTO daily_bar (symbol, trade_date, market, open, high, low, close, volume, amount, turnover, pct_change)
+                        VALUES (:symbol, :trade_date, :market, :open, :high, :low, :close, :volume, :amount, :turnover, :pct_change)
                         ON CONFLICT (symbol, trade_date) DO UPDATE SET
                             open = EXCLUDED.open, high = EXCLUDED.high,
                             low = EXCLUDED.low, close = EXCLUDED.close,
@@ -78,6 +85,7 @@ class PipelineOrchestrator:
                             turnover = EXCLUDED.turnover, pct_change = EXCLUDED.pct_change
                     """), {
                         **bar,
+                        "market": market,
                         "trade_date": bar["trade_date"],
                     })
                     count += 1
@@ -87,7 +95,7 @@ class PipelineOrchestrator:
 
         return count
 
-    def _step_compute_features(self, run_date: date) -> int:
+    def _step_compute_features(self, run_date: date, *, market: str = "CN") -> int:
         """Compute feature vectors for new segments."""
         calculator = feature_registry.get(settings.default_feature_version)
         window_size = settings.default_window_size
@@ -218,7 +226,7 @@ class PipelineOrchestrator:
 
         return 1
 
-    def _step_store_vectors(self, run_date: date) -> int:
+    def _step_store_vectors(self, run_date: date, *, market: str = "CN") -> int:
         """Verify vectors are stored (already done in compute step)."""
         sql = text("""
             SELECT COUNT(*) FROM segment_feature sf
@@ -228,7 +236,7 @@ class PipelineOrchestrator:
         result = self.db.execute(sql, {"run_date": run_date}).fetchone()
         return result[0] if result else 0
 
-    def _step_backfill_labels(self, run_date: date) -> int:
+    def _step_backfill_labels(self, run_date: date, *, market: str = "CN") -> int:
         """Backfill future labels for segments that now have enough future data."""
         future_days = 20
 
@@ -322,14 +330,14 @@ class PipelineOrchestrator:
 
         return 1
 
-    def _log_step(self, run_date, step_name, status, records=None, error=None):
+    def _log_step(self, run_date, step_name, status, records=None, error=None, *, market: str = "CN"):
         """Log pipeline step execution."""
         now = datetime.now()
         if status == "running":
             self.db.execute(text("""
-                INSERT INTO pipeline_run_log (run_date, step_name, status, started_at)
-                VALUES (:run_date, :step_name, :status, :started_at)
-                ON CONFLICT (run_date, step_name) DO UPDATE SET
+                INSERT INTO pipeline_run_log (run_date, market, step_name, status, started_at)
+                VALUES (:run_date, :market, :step_name, :status, :started_at)
+                ON CONFLICT (run_date, market, step_name) DO UPDATE SET
                     status = EXCLUDED.status,
                     started_at = EXCLUDED.started_at,
                     finished_at = NULL,
@@ -337,6 +345,7 @@ class PipelineOrchestrator:
                     error_message = NULL
             """), {
                 "run_date": run_date,
+                "market": market,
                 "step_name": step_name,
                 "status": status,
                 "started_at": now,
@@ -348,9 +357,10 @@ class PipelineOrchestrator:
                     finished_at = :finished_at,
                     records_processed = :records,
                     error_message = :error
-                WHERE run_date = :run_date AND step_name = :step_name
+                WHERE run_date = :run_date AND market = :market AND step_name = :step_name
             """), {
                 "run_date": run_date,
+                "market": market,
                 "step_name": step_name,
                 "status": status,
                 "finished_at": now,
@@ -359,33 +369,54 @@ class PipelineOrchestrator:
             })
         self.db.commit()
 
-    def get_status(self, run_date: date | None = None) -> list[dict]:
-        """Get pipeline run status."""
-        if run_date:
+    def get_status(self, run_date: date | None = None, *, market: str | None = None) -> list[dict]:
+        """Get pipeline run status, optionally filtered by market."""
+        params: dict = {}
+
+        if run_date and market:
             sql = text("""
-                SELECT step_name, status, started_at, finished_at, records_processed, error_message
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
+                FROM pipeline_run_log
+                WHERE run_date = :run_date AND market = :market
+                ORDER BY started_at
+            """)
+            params = {"run_date": run_date, "market": market}
+        elif run_date:
+            sql = text("""
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
                 FROM pipeline_run_log
                 WHERE run_date = :run_date
                 ORDER BY started_at
             """)
-            rows = self.db.execute(sql, {"run_date": run_date}).fetchall()
+            params = {"run_date": run_date}
+        elif market:
+            sql = text("""
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
+                FROM pipeline_run_log
+                WHERE market = :market
+                  AND run_date = (SELECT MAX(run_date) FROM pipeline_run_log WHERE market = :market)
+                ORDER BY started_at
+            """)
+            params = {"market": market}
         else:
             sql = text("""
-                SELECT step_name, status, started_at, finished_at, records_processed, error_message
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
                 FROM pipeline_run_log
                 WHERE run_date = (SELECT MAX(run_date) FROM pipeline_run_log)
                 ORDER BY started_at
             """)
-            rows = self.db.execute(sql).fetchall()
+
+        rows = self.db.execute(sql, params).fetchall()
 
         return [
             {
                 "step": row[0],
-                "status": row[1],
-                "started_at": row[2].isoformat() if row[2] else None,
-                "finished_at": row[3].isoformat() if row[3] else None,
-                "records_processed": row[4],
-                "error": row[5],
+                "market": row[1],
+                "status": row[2],
+                "started_at": row[3].isoformat() if row[3] else None,
+                "finished_at": row[4].isoformat() if row[4] else None,
+                "records_processed": row[5],
+                "error": row[6],
             }
             for row in rows
         ]

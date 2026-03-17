@@ -13,29 +13,38 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/compute/v1", tags=["admin"])
 
 
+from typing import Literal
+
+Market = Literal["CN", "US"]
+
+
 class PipelineRequest(BaseModel):
     run_date: str | None = None  # YYYY-MM-DD format
+    market: Market = "CN"
 
 
 class BackfillRequest(BaseModel):
     start_date: str  # YYYY-MM-DD
     end_date: str    # YYYY-MM-DD
+    market: Market = "CN"
 
 
 @router.post("/pipeline/eod")
 def trigger_eod(req: PipelineRequest, background_tasks: BackgroundTasks):
     run_date = date.fromisoformat(req.run_date) if req.run_date else date.today()
+    market = req.market
 
     def _run():
         with get_db() as db:
             orchestrator = PipelineOrchestrator(db)
-            orchestrator.run_eod(run_date)
+            orchestrator.run_eod(run_date, market=market)
 
     background_tasks.add_task(_run)
 
     return {
         "status": "accepted",
         "run_date": run_date.isoformat(),
+        "market": market,
         "message": "EOD pipeline started in background",
     }
 
@@ -45,6 +54,7 @@ def backfill(body: BackfillRequest, background_tasks: BackgroundTasks):
     """Run the EOD pipeline for each trading day in [start_date, end_date]."""
     start = date.fromisoformat(body.start_date)
     end = date.fromisoformat(body.end_date)
+    market = body.market
 
     def _run():
         results = {}
@@ -54,11 +64,11 @@ def backfill(body: BackfillRequest, background_tasks: BackgroundTasks):
             if current.weekday() >= 5:
                 current += timedelta(days=1)
                 continue
-            logger.info(f"[Backfill] Running EOD for {current}")
+            logger.info(f"[Backfill] Running EOD for {current} (market={market})")
             try:
                 with get_db() as db:
                     orch = PipelineOrchestrator(db)
-                    result = orch.run_eod(current)
+                    result = orch.run_eod(current, market=market)
                 results[current.isoformat()] = result
                 logger.info(f"[Backfill] {current} done: {result}")
             except Exception as e:
@@ -73,14 +83,15 @@ def backfill(body: BackfillRequest, background_tasks: BackgroundTasks):
         "status": "accepted",
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
+        "market": market,
         "message": "Backfill started in background",
     }
 
 
 @router.get("/pipeline/status")
-def pipeline_status(run_date: str | None = None):
+def pipeline_status(run_date: str | None = None, market: Market | None = None):
     rd = date.fromisoformat(run_date) if run_date else None
     with get_db() as db:
         orchestrator = PipelineOrchestrator(db)
-        steps = orchestrator.get_status(rd)
+        steps = orchestrator.get_status(rd, market=market)
     return {"steps": steps}

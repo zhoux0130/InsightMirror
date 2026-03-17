@@ -139,9 +139,13 @@ input {
 
 .query-panel {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: auto 1fr 1fr auto;
   gap: 16px;
   padding: 20px 28px;
+}
+
+.market-tabs {
+  min-width: 140px;
 }
 
 .field {
