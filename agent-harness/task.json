@@ -61,7 +61,7 @@
         "GET /compute/v1/pipeline/status 返回的结果能区分 CN/US market",
         "python -m pytest tests/ 通过"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 4,

@@ -369,33 +369,54 @@ class PipelineOrchestrator:
             })
         self.db.commit()
 
-    def get_status(self, run_date: date | None = None) -> list[dict]:
-        """Get pipeline run status."""
-        if run_date:
+    def get_status(self, run_date: date | None = None, *, market: str | None = None) -> list[dict]:
+        """Get pipeline run status, optionally filtered by market."""
+        params: dict = {}
+
+        if run_date and market:
             sql = text("""
-                SELECT step_name, status, started_at, finished_at, records_processed, error_message
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
+                FROM pipeline_run_log
+                WHERE run_date = :run_date AND market = :market
+                ORDER BY started_at
+            """)
+            params = {"run_date": run_date, "market": market}
+        elif run_date:
+            sql = text("""
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
                 FROM pipeline_run_log
                 WHERE run_date = :run_date
                 ORDER BY started_at
             """)
-            rows = self.db.execute(sql, {"run_date": run_date}).fetchall()
+            params = {"run_date": run_date}
+        elif market:
+            sql = text("""
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
+                FROM pipeline_run_log
+                WHERE market = :market
+                  AND run_date = (SELECT MAX(run_date) FROM pipeline_run_log WHERE market = :market)
+                ORDER BY started_at
+            """)
+            params = {"market": market}
         else:
             sql = text("""
-                SELECT step_name, status, started_at, finished_at, records_processed, error_message
+                SELECT step_name, market, status, started_at, finished_at, records_processed, error_message
                 FROM pipeline_run_log
                 WHERE run_date = (SELECT MAX(run_date) FROM pipeline_run_log)
                 ORDER BY started_at
             """)
-            rows = self.db.execute(sql).fetchall()
+
+        rows = self.db.execute(sql, params).fetchall()
 
         return [
             {
                 "step": row[0],
-                "status": row[1],
-                "started_at": row[2].isoformat() if row[2] else None,
-                "finished_at": row[3].isoformat() if row[3] else None,
-                "records_processed": row[4],
-                "error": row[5],
+                "market": row[1],
+                "status": row[2],
+                "started_at": row[3].isoformat() if row[3] else None,
+                "finished_at": row[4].isoformat() if row[4] else None,
+                "records_processed": row[5],
+                "error": row[6],
             }
             for row in rows
         ]
