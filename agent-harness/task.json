@@ -76,7 +76,7 @@
         "pnpm --filter server build 成功",
         "pnpm --filter server lint 无错误"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 5,
