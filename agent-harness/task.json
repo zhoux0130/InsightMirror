@@ -92,7 +92,7 @@
         "pnpm --filter web build 成功",
         "浏览器中切换 A 股 / 美股 Tab 功能正常"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 6,

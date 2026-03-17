@@ -188,7 +188,13 @@ function Home() {
 
         {error ? <div className="state-card error-state">{error}</div> : null}
 
-        {!detail && !loading ? <div className="state-card">当前没有可展示的数据。</div> : null}
+        {!detail && !loading ? (
+          <div className="state-card">
+            {options.length === 0
+              ? `当前${market === 'US' ? '美股' : 'A 股'}暂无可用数据，请先完成数据初始化。`
+              : '当前没有可展示的数据。'}
+          </div>
+        ) : null}
 
         {detail ? (
           <div className="detail-stack">
