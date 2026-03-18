@@ -53,6 +53,21 @@ const PipelineTriggerSchema = {
   },
 };
 
+const PipelineInitSchema = {
+  summary: '触发股票数据初始化',
+  tags: ['pipeline'],
+  body: {
+    type: 'object',
+    properties: {
+      market: { type: 'string', enum: ['CN', 'US'], default: 'CN' },
+      symbols: { type: 'array', items: { type: 'string' }, nullable: true },
+      start_date: { type: 'string', nullable: true },
+      end_date: { type: 'string', nullable: true },
+      skip_hnsw: { type: 'boolean', default: false },
+    },
+  },
+};
+
 // --- Helper ---
 
 async function proxyToCompute(
@@ -169,6 +184,28 @@ export const PipelineController = (fastify: FastifyInstance) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const result = await proxyToCompute('/compute/v1/pipeline/eod', 'POST', request.body);
+        return { success: true, data: result };
+      } catch (error: any) {
+        reply.code(502).send({
+          success: false,
+          error: error.message || 'Compute service unavailable',
+        });
+      }
+    }
+  );
+
+  // POST /api/pipeline/init - 触发股票数据初始化（需认证）
+  app.post(
+    '/init',
+    {
+      schema: PipelineInitSchema,
+      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
+        await authMiddleware(request, reply, app);
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const result = await proxyToCompute('/compute/v1/pipeline/init', 'POST', request.body);
         return { success: true, data: result };
       } catch (error: any) {
         reply.code(502).send({
