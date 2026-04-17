@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 from app.config import settings
 from app.data.akshare import canonicalize_a_share_symbol
@@ -49,3 +50,32 @@ def chunked(items: Iterable[dict], size: int) -> list[list[dict]]:
     if chunk:
         batches.append(chunk)
     return batches
+
+
+# State Grid OSS key helpers
+
+def state_grid_list_snapshot_key(api: str, task_id: str, page: int, dt: Optional[datetime] = None) -> str:
+    """Generate OSS key for state grid list snapshot."""
+    dt = dt or datetime.utcnow()
+    date_str = dt.strftime("%Y/%m/%d")
+    return f"{settings.state_grid_oss_prefix}/list/{api}/{date_str}/{task_id}-{page}.json"
+
+
+def state_grid_detail_snapshot_key(notice_id: str, api: str, timestamp: str) -> str:
+    """Generate OSS key for state grid detail snapshot."""
+    return f"{settings.state_grid_oss_prefix}/detail/{notice_id}/{api}-{timestamp}.json"
+
+
+def state_grid_file_key(notice_id: str, sha256: str, original_name: str) -> str:
+    """Generate OSS key for state grid file attachment."""
+    return f"{settings.state_grid_oss_prefix}/file/{notice_id}/{sha256[:8]}/{sha256}/{original_name}"
+
+
+def state_grid_html_key(notice_id: str, api: str, timestamp: str) -> str:
+    """Generate OSS key for state grid HTML content."""
+    return f"{settings.state_grid_oss_prefix}/file/{notice_id}/render/{api}-{timestamp}.html"
+
+
+def ensure_state_grid_raw_dir(subpath: str) -> Path:
+    """Return a Path under the raw root for local state-grid staging."""
+    return raw_data_root() / "state_grid" / subpath

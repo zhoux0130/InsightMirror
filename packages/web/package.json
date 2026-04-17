@@ -1,6 +1,7 @@
 {
   "name": "web",
   "version": "1.0.0",
+  "description": "ecp-vision 前端应用",
   "private": true,
   "type": "module",
   "scripts": {

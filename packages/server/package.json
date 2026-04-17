@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "InsightMirror 后端服务",
+  "description": "ecp-vision 后端服务",
   "main": "dist/index.js",
   "scripts": {
     "postinstall": "prisma generate",

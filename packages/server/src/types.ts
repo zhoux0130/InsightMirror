@@ -1,12 +1,10 @@
-import { FastifyInstance } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { PrismaClient } from '@prisma/client'
-import type { PgVectorService } from './services/pgvector'
 
 // 扩展 FastifyInstance 添加服务
 export type Application = FastifyInstance & {
   $prisma: PrismaClient
   $session: ReturnType<typeof import('./services/session').SessionService>
-  $pgvector: PgVectorService
   stop?: () => Promise<void>
 }
 

@@ -4,7 +4,6 @@ export const system = {
   isProduction: process.env.NODE_ENV === 'production',
 }
 
-// 检查必需的环境变量
 const checkRequiredEnv = (key: string, value: any, description: string) => {
   if (!value) {
     if (process.env.NODE_ENV === 'production') {
@@ -25,7 +24,7 @@ export const web = {
 
   multipart: {
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB
+      fileSize: 10 * 1024 * 1024,
     },
   },
 }
@@ -49,14 +48,4 @@ export const jwt = {
 
 export const database = {
   url: process.env.DATABASE_URL,
-}
-
-export const compute = {
-  url: process.env.COMPUTE_SERVICE_URL || 'http://localhost:8000',
-}
-
-export const wechat = {
-  openAppId: process.env.WX_OPEN_APPID || '',
-  openSecret: process.env.WX_OPEN_SECRET || '',
-  openRedirectUri: process.env.WX_OPEN_REDIRECT_URI || '',
 }

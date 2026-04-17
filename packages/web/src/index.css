@@ -15,9 +15,8 @@
   --muted: #807068;
   --accent: #b5302a;
   --accent-soft: rgba(181, 48, 42, 0.10);
-  /* A 股配色：红涨绿跌 */
-  --positive: #c43838;
-  --negative: #2d9d4e;
+  --positive: #2d9d4e;
+  --negative: #c43838;
   --danger: #b24a3d;
   --pill: #e0d8d5;
   --shadow: 0 18px 50px rgba(47, 31, 31, 0.08);
@@ -1150,6 +1149,114 @@ blockquote {
   width: 100%;
   justify-content: center;
   margin-top: 6px;
+}
+
+/* ── Posts page ──────────────────────────────────── */
+
+.posts-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 960px) {
+  .posts-layout {
+    grid-template-columns: 360px 1fr;
+  }
+}
+
+.posts-form-card h2,
+.posts-list-card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+}
+
+.posts-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.post-item {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-strong);
+}
+
+.post-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.post-item-head h3 {
+  font-size: 1.1rem;
+}
+
+.post-item-content {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin-bottom: 10px;
+}
+
+.posts-item-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pill-published {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.pill-draft {
+  background: rgba(112, 128, 137, 0.12);
+  color: var(--muted);
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature-list {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.feature-list li {
+  margin: 8px 0;
+  color: var(--muted);
+}
+
+.card-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 /* ── PC wide layout ───────────────────────────────── */

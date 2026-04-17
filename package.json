@@ -1,7 +1,7 @@
 {
-  "name": "insight-mirror",
+  "name": "ecp-vision",
   "version": "1.0.0",
-  "description": "InsightMirror - Mobile H5 应用",
+  "description": "通用 Web + API + PostgreSQL 脚手架（Node.js + React + Postgres）",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -11,8 +11,6 @@
     "dev:web": "pnpm --filter web dev",
     "build:server": "pnpm --filter server build",
     "build:web": "pnpm --filter web build",
-    "dev:digest": "pnpm --filter @insight-mirror/group-digest dev",
-    "build:digest": "pnpm --filter @insight-mirror/group-digest build",
     "start:server": "pnpm --filter server start",
     "install:all": "pnpm install",
     "check:no-local-links": "node scripts/verify-no-local-link-deps.mjs",
@@ -24,7 +22,7 @@
     "typescript",
     "react",
     "vite",
-    "mobile-h5"
+    "postgres"
   ],
   "author": "",
   "license": "MIT",

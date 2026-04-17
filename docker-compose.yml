@@ -1,16 +1,16 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: postgres:16
     restart: unless-stopped
     env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-insightmirror}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-insightmirror}
-      POSTGRES_DB: ${POSTGRES_DB:-insightmirror}
+      POSTGRES_USER: ${POSTGRES_USER:-ecpvision}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ecpvision}
+      POSTGRES_DB: ${POSTGRES_DB:-ecpvision}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-insightmirror}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ecpvision}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,34 +24,11 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL}
-      COMPUTE_SERVICE_URL: http://compute:8000
-      WX_OPEN_APPID: ${WX_OPEN_APPID:-}
-      WX_OPEN_SECRET: ${WX_OPEN_SECRET:-}
-      WX_OPEN_REDIRECT_URI: ${WX_OPEN_REDIRECT_URI:-}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)throw r;process.exit(0)}).catch(()=>process.exit(1))\""]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  compute:
-    build: ./packages/compute
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      SCHEDULER_ENABLED: "${SCHEDULER_ENABLED:-true}"
-      SCHEDULER_HOUR: "${SCHEDULER_HOUR:-1}"
-      SCHEDULER_MINUTE: "${SCHEDULER_MINUTE:-0}"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/compute/health')\""]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -66,8 +43,6 @@ services:
       - "${EPORT:-80}:80"
     depends_on:
       server:
-        condition: service_healthy
-      compute:
         condition: service_healthy
 
 volumes:

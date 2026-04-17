@@ -1,15 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import Home from './pages/Home';
-import BasketList from './pages/BasketList';
-import BasketDetail from './pages/BasketDetail';
-import BasketCompare from './pages/BasketCompare';
-import Login from './pages/Login';
-import WechatCallback from './pages/WechatCallback';
-import type { ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import Home from './pages/Home'
+import Posts from './pages/Posts'
+import Login from './pages/Login'
+import type { ReactNode } from 'react'
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, loading } = useAuth()
 
   if (loading) {
     return (
@@ -18,14 +15,14 @@ function RequireAuth({ children }: { children: ReactNode }) {
           <div className="state-card">加载中...</div>
         </section>
       </main>
-    );
+    )
   }
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />
   }
 
-  return <>{children}</>;
+  return <>{children}</>
 }
 
 function AppRoutes() {
@@ -33,33 +30,16 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/auth/wechat/callback" element={<WechatCallback />} />
       <Route
-        path="/baskets"
+        path="/posts"
         element={
           <RequireAuth>
-            <BasketList />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/baskets/compare"
-        element={
-          <RequireAuth>
-            <BasketCompare />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/baskets/:id"
-        element={
-          <RequireAuth>
-            <BasketDetail />
+            <Posts />
           </RequireAuth>
         }
       />
     </Routes>
-  );
+  )
 }
 
 function App() {
@@ -69,7 +49,7 @@ function App() {
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
-  );
+  )
 }
 
-export default App;
+export default App
