@@ -39,3 +39,7 @@ packages/compute/data/raw/
 # Claude / OpenCode local settings
 .claude/settings.local.json
 .opencode/
+
+# Python
+__pycache__/
+*.pyc

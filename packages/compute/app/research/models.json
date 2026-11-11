@@ -1,0 +1,34 @@
+[
+  {
+    "id": "claude",
+    "kind": "anthropic",
+    "model": "claude-opus-5-5",
+    "key_env": "ANTHROPIC_API_KEY",
+    "base_url": "",
+    "price": {"currency": "USD", "input": 4.0, "output": 20.0, "cache_read": 0.2, "cache_write": 5.0},
+    "price_note": "Anthropic 官方价（每百万 tokens），缓存写入按 1.25 倍；仅线上机器可访问"
+  },
+  {
+    "id": "glm",
+    "kind": "openai_compatible",
+    "model": "glm-5.3",
+    "key_env": "GLM_API_KEY",
+    "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
+    "stage_options": {
+      "DocumentMap": {"thinking": {"type": "disabled"}},
+      "ClaimsOutput": {"max_tokens": 64000},
+      "ReviewOutput": {"max_tokens": 64000}
+    },
+    "price": {"currency": "USD", "input": 1.4, "output": 4.4, "cache_read": 0.26, "cache_write": 0.0},
+    "price_note": "走 Coding Plan 额度，不产生按量账单；费用是按第三方聚合站单价折算的参考值，未经智谱官方核对"
+  },
+  {
+    "id": "kimi",
+    "kind": "openai_compatible",
+    "model": "kimi-for-coding",
+    "key_env": "KIMI_API_KEY",
+    "base_url": "https://api.kimi.com/coding/v1",
+    "price": {"currency": "USD", "input": 0.745, "output": 3.5, "cache_read": 0.146, "cache_write": 0.0},
+    "price_note": "走 Kimi Code 会员额度，不产生按量账单；费用按第三方聚合站的 K2.6 单价折算，仅供参考，实际底层模型以官方为准"
+  }
+]
