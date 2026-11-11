@@ -5,8 +5,13 @@ from typing import Generator
 
 from app.config import settings
 
+# SQLAlchemy 2.1 起 postgresql:// 默认改用 psycopg(3)；本项目装的是 psycopg2，这里显式指定驱动。
+_url = settings.database_url
+if _url.startswith("postgresql://"):
+    _url = "postgresql+psycopg2://" + _url[len("postgresql://"):]
+
 engine = create_engine(
-    settings.database_url,
+    _url,
     pool_size=10,
     max_overflow=20,
     pool_pre_ping=True,
