@@ -9,6 +9,7 @@ import app.core.feature.v1  # noqa: F401
 
 from app.api.query import router as query_router
 from app.api.admin import router as admin_router
+from app.api.research_admin import router as research_admin_router
 from app.scheduler import start_scheduler, shutdown_scheduler
 
 
@@ -28,6 +29,7 @@ app = FastAPI(
 
 app.include_router(query_router)
 app.include_router(admin_router)
+app.include_router(research_admin_router)
 
 
 @app.get("/compute/health")

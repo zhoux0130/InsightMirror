@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型用量后台</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f7f8fa; --panel:#fff; --ink:#1f2933; --muted:#616e7c; --line:#e4e7eb; --bad:#b42318; --ok:#067647; --warn:#b54708; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14181d; --panel:#1d232a; --ink:#e4e7eb; --muted:#9aa5b1; --line:#323f4b; --bad:#f97066; --ok:#47cd89; --warn:#fdb022; } }
+  body { margin:0; padding:24px 16px 48px; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,"PingFang SC",sans-serif; }
+  main { max-width:1180px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:0 0 4px; }
+  p { color:var(--muted); margin:0 0 12px; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; margin-top:16px; }
+  .scroll { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+  th,td { padding:7px 10px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; }
+  th:first-child,td:first-child,td.text,th.text { text-align:left; }
+  .bad { color:var(--bad); } .ok { color:var(--ok); } .warn { color:var(--warn); }
+  select { font:inherit; padding:4px 8px; margin-bottom:10px; }
+  .note { font-size:12px; color:var(--muted); margin:8px 0 0; }
+  .filters { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+  .filters select, .filters input { font:inherit; padding:4px 8px; margin:0; max-width:100%; }
+  .claim { border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-top:10px; }
+  .claim .head { display:flex; flex-wrap:wrap; gap:6px 12px; font-weight:600; }
+  .claim .meta { color:var(--muted); font-size:12px; margin-top:2px; }
+  .claim .concl { margin-top:6px; }
+  .claim blockquote { margin:8px 0 0; padding:6px 10px; border-left:3px solid var(--line); background:var(--bg); white-space:pre-wrap; }
+  .claim .why { font-size:12px; margin-top:6px; }
+  #compare tr:not(:first-child) { cursor:pointer; }
+  .fb { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:10px; padding-top:8px; border-top:1px dashed var(--line); }
+  .fb button, .chip { font:inherit; font-size:13px; padding:3px 10px; border:1px solid var(--line); border-radius:14px; background:var(--panel); color:var(--ink); cursor:pointer; }
+  .fb button[aria-pressed="true"].v-correct { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .fb button[aria-pressed="true"].v-partial { background:var(--warn); border-color:var(--warn); color:#fff; }
+  .fb button[aria-pressed="true"].v-wrong { background:var(--bad); border-color:var(--bad); color:#fff; }
+  .chip[aria-pressed="true"] { border-color:var(--ink); font-weight:600; }
+  .fields { display:flex; flex-wrap:wrap; gap:6px; width:100%; }
+  .fb textarea { width:100%; box-sizing:border-box; font:inherit; font-size:13px; min-height:32px; padding:4px 8px; resize:vertical; }
+  .claim.rated-correct { border-left:4px solid var(--ok); } .claim.rated-partial { border-left:4px solid var(--warn); } .claim.rated-wrong { border-left:4px solid var(--bad); }
+  #tally { margin:0 0 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>模型用量后台</h1>
+  <p>数据来自运行所在机器。费用按配置单价估算，不等于账单。</p>
+
+  <section>
+    <h2>用量与预计费用</h2>
+    <p>按模型累计，包含失败调用。</p>
+    <div class="scroll"><table id="usage"></table></div>
+    <div id="notes" class="note"></div>
+  </section>
+
+  <section>
+    <h2>运行记录与效果</h2>
+    <p>引用未命中和复核分歧越低越好；陷阱只覆盖已知错误，不代表整体准确率。试跑不参与模型对比。</p>
+    <div class="scroll"><table id="runs"></table></div>
+  </section>
+
+  <section>
+    <h2>模型结论对比</h2>
+    <p>同一文稿、同一公司和判断对象下，各模型给出的方向。</p>
+    <select id="doc" aria-label="选择文稿"></select>
+    <div class="scroll"><table id="compare"></table></div>
+    <p class="note">点击一行，可在下方查看这家公司的原文引用。</p>
+  </section>
+
+  <section id="claims-section">
+    <h2>观点明细与原文引用</h2>
+    <p>每条观点都附上模型给出的逐字引用和页码。引用已和原文核对，未命中的会标为“拒绝”。可以边看原文边在卡片底部评价，点一下即保存。</p>
+    <div id="tally" class="note"></div>
+    <div class="filters">
+      <select id="f-model" aria-label="模型"><option value="">全部模型</option></select>
+      <input id="f-entity" type="search" placeholder="公司或关键词" aria-label="公司或关键词">
+      <select id="f-route" aria-label="校验状态">
+        <option value="">全部状态</option><option value="auto">自动通过</option>
+        <option value="review">待确认</option><option value="reject">拒绝</option>
+      </select>
+      <input id="f-page" type="number" min="1" placeholder="页码" aria-label="页码" style="width:80px">
+      <select id="f-rated" aria-label="评价状态">
+        <option value="">全部评价状态</option><option value="none">未评价</option><option value="any">已评价</option>
+        <option value="correct">正确</option><option value="partial">部分对</option><option value="wrong">错误</option>
+      </select>
+      <select id="f-sort" aria-label="排序"><option value="page">按页码</option><option value="model">按模型</option></select>
+      <label><input id="f-stance" type="checkbox"> 只看计入结论的</label>
+      <span id="f-count" class="note"></span>
+    </div>
+    <div id="claims"></div>
+  </section>
+</main>
+<script>
+const API = location.pathname.replace(/\/admin\/?$/, '');
+const num = v => v == null ? '–' : Number(v).toLocaleString();
+const pct = v => v == null ? '–' : (v * 100).toFixed(1) + '%';
+const money = (v, c) => (v == null ? '–' : `${Number(v).toFixed(4)} ${c || ''}`);
+const time = t => t ? new Date(t * 1000).toLocaleString() : '–';
+
+// Model output is untrusted, so every value goes through textContent.
+function render(table, headers, rows, empty) {
+  table.replaceChildren();
+  const head = table.insertRow();
+  headers.forEach(h => { const th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
+  if (!rows.length) {
+    const c = table.insertRow().insertCell();
+    c.colSpan = headers.length; c.className = 'text'; c.textContent = empty;
+    return;
+  }
+  rows.forEach(cells => {
+    const row = table.insertRow();
+    cells.forEach(cell => {
+      const td = row.insertCell();
+      const spec = typeof cell === 'object' && cell !== null ? cell : { t: cell };
+      td.textContent = spec.t ?? '–';
+      if (spec.c) td.className = spec.c;
+      if (spec.title) td.title = spec.title;
+    });
+  });
+}
+const get = p => fetch(API + p).then(r => { if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.json(); });
+
+async function loadCompare(doc) {
+  if (!doc) return render(document.getElementById('compare'), ['公司｜判断对象'], [], '还没有完整运行结果');
+  const data = await get('/compare?doc_id=' + encodeURIComponent(doc));
+  const tone = { '一致':'ok', '有分歧':'bad', '仅部分模型提到':'warn' };
+  render(document.getElementById('compare'), ['公司｜判断对象', ...data.models, '状态'],
+    data.rows.map(r => [r.key, ...data.models.map(m => ({ t: r.cells[m].join('、') || '–', c: 'text' })), { t: r.status, c: tone[r.status] }]),
+    '这份文稿还没有完整运行结果');
+  [...document.getElementById('compare').rows].slice(1).forEach((row, i) => {
+    row.onclick = () => {
+      document.getElementById('f-entity').value = data.rows[i].key.split('｜')[0];
+      renderClaims();
+      document.getElementById('claims-section').scrollIntoView({ behavior: 'smooth' });
+    };
+  });
+  await loadClaims(doc);
+}
+
+const REASONS = {
+  quote_not_found_in_segment: '引用在原文中找不到', quote_too_long: '引用过长', block_id_corrected: '段落编号已自动纠正',
+  entity_unresolved: '实体不在主数据里', entity_not_named_in_segment: '这段原文没直接点名该实体',
+  explicitness_inferred: '属于推断，不是明说', price_target_without_price_language: '判断对象是股价，但引用里没有价格相关表述',
+  conditional_quote_without_condition: '引用有“如果”，但没写条件', check_without_metric: '检验标准缺指标',
+  change_without_prior_view: '标了观点变化，但没写之前的观点', time_phrase_not_in_text: '时间表述在原文里找不到',
+  window_start_format: '开始时间格式不对', window_end_format: '结束时间格式不对', window_reversed: '时间窗口前后颠倒',
+  window_without_time_phrase: '有时间窗口但没有原文时间表述', question_block_attributed_to_teacher: '提问人的话被当成老师观点',
+  summary_block_misattributed: '摘要段被当成老师原话', independent_review_missing: '缺少独立复核',
+};
+const reasonText = r => r.startsWith('independent_review_disagrees:') ? '独立复核不认同：' + r.split(':')[1] : (REASONS[r] || r);
+const ROUTE = { auto: ['自动通过', 'ok'], review: ['待确认', 'warn'], reject: ['拒绝', 'bad'] };
+let CLAIMS = [];
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+let DOC = '';
+const VERDICT = { correct: '正确', partial: '部分对', wrong: '错误' };
+const FIELDS = { meaning: '原意理解', direction: '看涨看跌', target: '判断对象', window: '时间', entity: '公司/实体',
+  attribution: '谁的观点', condition: '条件/信号', other: '其他' };
+const pages = c => (c.page.match(/\d+/g) || []).map(Number);
+const firstPage = c => pages(c)[0] ?? 1e9;
+
+async function loadClaims(doc) {
+  DOC = doc || '';
+  CLAIMS = doc ? (await get('/claims?doc_id=' + encodeURIComponent(doc))).claims : [];
+  const sel = document.getElementById('f-model');
+  sel.length = 1;
+  [...new Set(CLAIMS.map(c => c.model_id))].forEach(m => sel.add(new Option(m, m)));
+  renderClaims();
+}
+
+function renderTally() {
+  const box = document.getElementById('tally');
+  box.replaceChildren();
+  [...new Set(CLAIMS.map(c => c.model_id))].forEach(m => {
+    const mine = CLAIMS.filter(c => c.model_id === m);
+    const n = k => mine.filter(c => c.feedback?.verdict === k).length;
+    const rated = n('correct') + n('partial') + n('wrong');
+    const rate = rated ? `，正确率 ${(n('correct') / rated * 100).toFixed(0)}%（部分对不算正确）` : '';
+    box.appendChild(el('div', '', `${m}：已评 ${rated} / ${mine.length} 条 · 正确 ${n('correct')} · 部分对 ${n('partial')} · 错误 ${n('wrong')}${rate}`));
+  });
+}
+
+async function saveFeedback(c, status) {
+  const fb = c.feedback || {};
+  status.textContent = '保存中…'; status.className = 'note';
+  try {
+    const r = await fetch(API + '/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc_id: DOC, model_id: c.model_id, claim_id: c.claim_id,
+        verdict: fb.verdict || '', wrong_fields: fb.wrong_fields || [], note: fb.note || '' }) });
+    if (!r.ok) throw new Error(r.status);
+    status.textContent = '已保存'; status.className = 'note ok';
+  } catch (e) { status.textContent = '保存失败（' + e.message + '），请重试'; status.className = 'note bad'; }
+  renderTally();
+}
+
+function feedbackRow(c, card) {
+  const row = el('div', 'fb');
+  const status = el('span', 'note');
+  const fields = el('div', 'fields');
+  const note = el('textarea');
+  note.placeholder = '备注（可选）：比如原话其实是说波动，不是看跌';
+  note.value = c.feedback?.note || '';
+  const buttons = {};
+  const paint = () => {
+    const v = c.feedback?.verdict || '';
+    Object.entries(buttons).forEach(([k, b]) => b.setAttribute('aria-pressed', String(k === v)));
+    card.className = 'claim' + (v ? ' rated-' + v : '');
+    fields.hidden = !(v === 'partial' || v === 'wrong');
+    [...fields.children].forEach(chip => chip.setAttribute('aria-pressed', String((c.feedback?.wrong_fields || []).includes(chip.dataset.k))));
+  };
+  row.appendChild(el('span', 'note', '评价：'));
+  Object.entries(VERDICT).forEach(([k, label]) => {
+    const b = el('button', 'v-' + k, label); b.type = 'button';
+    b.onclick = () => {
+      c.feedback = { ...(c.feedback || {}), verdict: c.feedback?.verdict === k ? '' : k };
+      if (c.feedback.verdict === 'correct' || !c.feedback.verdict) c.feedback.wrong_fields = [];
+      paint(); saveFeedback(c, status);
+    };
+    buttons[k] = b; row.appendChild(b);
+  });
+  row.appendChild(status);
+  fields.appendChild(el('span', 'note', '错在哪里（可多选）：'));
+  Object.entries(FIELDS).forEach(([k, label]) => {
+    const chip = el('button', 'chip', label); chip.type = 'button'; chip.dataset.k = k;
+    chip.onclick = () => {
+      const set = new Set(c.feedback?.wrong_fields || []);
+      set.has(k) ? set.delete(k) : set.add(k);
+      c.feedback = { ...c.feedback, wrong_fields: [...set] };
+      paint(); saveFeedback(c, status);
+    };
+    fields.appendChild(chip);
+  });
+  row.appendChild(fields);
+  note.onchange = () => { c.feedback = { ...(c.feedback || {}), note: note.value }; saveFeedback(c, status); };
+  row.appendChild(note);
+  paint();
+  return row;
+}
+
+function renderClaims() {
+  const model = document.getElementById('f-model').value;
+  const q = document.getElementById('f-entity').value.trim().toLowerCase();
+  const route = document.getElementById('f-route').value;
+  const stance = document.getElementById('f-stance').checked;
+  const page = Number(document.getElementById('f-page').value) || 0;
+  const rated = document.getElementById('f-rated').value;
+  const sort = document.getElementById('f-sort').value;
+  const hits = CLAIMS.filter(c => {
+    const v = c.feedback?.verdict || '';
+    const ps = pages(c);
+    return (!model || c.model_id === model) && (!route || c.route === route) && (!stance || c.counts_for_stance)
+      && (!q || [c.entity, c.conclusion, c.quote].some(s => (s || '').toLowerCase().includes(q)))
+      && (!page || (ps.length && page >= ps[0] && page <= ps[ps.length - 1]))
+      && (!rated || (rated === 'none' ? !v : rated === 'any' ? !!v : v === rated));
+  });
+  hits.sort(sort === 'page'
+    ? (a, b) => firstPage(a) - firstPage(b) || a.block_id.localeCompare(b.block_id) || a.model_id.localeCompare(b.model_id)
+    : (a, b) => a.model_id.localeCompare(b.model_id) || a.claim_id.localeCompare(b.claim_id));
+  document.getElementById('f-count').textContent = `${hits.length} / ${CLAIMS.length} 条`;
+  renderTally();
+  const box = document.getElementById('claims');
+  box.replaceChildren();
+  if (!hits.length) { box.appendChild(el('p', '', CLAIMS.length ? '没有符合条件的观点' : '还没有完整运行结果')); return; }
+  hits.slice(0, 300).forEach(c => {
+    const card = el('div', 'claim');
+    const head = el('div', 'head');
+    head.append(el('span', '', `${c.entity}${c.markets.length ? '（' + c.markets.join('/') + '）' : ''}`), el('span', '', c.target),
+      el('span', /看涨/.test(c.direction) ? 'ok' : (/看跌/.test(c.direction) ? 'bad' : ''), `${c.direction} · ${c.strength}`),
+      el('span', ROUTE[c.route][1], ROUTE[c.route][0]));
+    card.appendChild(head);
+    const meta = [c.model_id, c.claim_id, c.page ? '第 ' + c.page + ' 页' : '页码未知', c.block_id, c.attribution, c.speech_act,
+      c.window ? '时间 ' + c.window + (c.time_phrase ? `（${c.time_phrase}）` : '') : '无明确时间', c.counts_for_stance ? '计入结论' : '不计入结论'];
+    card.appendChild(el('div', 'meta', meta.join(' · ')));
+    card.appendChild(el('div', 'concl', c.conclusion));
+    [['逻辑', c.mechanism], ['条件', c.condition], ['跟踪信号', c.signal]].forEach(([k, v]) => { if (v) card.appendChild(el('div', 'meta', `${k}：${v}`)); });
+    card.appendChild(el('blockquote', '', c.quote || '（无引用）'));
+    if (c.reasons.length) card.appendChild(el('div', 'why ' + ROUTE[c.route][1], '机器校验：' + c.reasons.map(reasonText).join('；')));
+    card.appendChild(feedbackRow(c, card));
+    box.appendChild(card);
+  });
+  if (hits.length > 300) box.appendChild(el('p', 'note', `只显示前 300 条，请用筛选缩小范围。`));
+}
+['f-model', 'f-route', 'f-stance', 'f-rated', 'f-sort'].forEach(id => document.getElementById(id).onchange = renderClaims);
+['f-entity', 'f-page'].forEach(id => document.getElementById(id).oninput = renderClaims);
+
+async function main() {
+  const [usage, runs, docs] = await Promise.all([get('/usage'), get('/runs'), get('/documents')]);
+  render(document.getElementById('usage'),
+    ['模型', '调用', '失败', '输入', '缓存读取', '缓存写入', '输出', '平均耗时(ms)', '预计费用'],
+    usage.models.map(m => [m.model_id, num(m.calls), { t: num(m.failed_calls), c: m.failed_calls ? 'bad' : '' }, num(m.input_tokens),
+      num(m.cache_read_tokens), num(m.cache_write_tokens), num(m.output_tokens), num(m.avg_latency_ms), money(m.estimated_cost, m.currency)]),
+    '还没有调用记录');
+  const notes = document.getElementById('notes');
+  Object.entries(usage.catalog).forEach(([id, c]) => {
+    const line = document.createElement('div'); line.textContent = `${id}（${c.model}）：${c.price_note}`; notes.appendChild(line);
+  });
+  render(document.getElementById('runs'),
+    ['时间', '文稿', '模型', '状态', '观点', '自动', '待确认', '拒绝', '引用未命中', '复核分歧', '陷阱', '费用', '每条费用'],
+    runs.runs.map(r => {
+      const m = r.metrics || {};
+      const failed = Object.keys(m.traps_failed || {}).join('\n');
+      const unit = m.claims ? r.estimated_cost / m.claims : null;
+      return [time(r.started_at), { t: r.doc_id, c: 'text' }, { t: r.model_id + (r.partial ? '（试跑）' : ''), c: 'text' },
+        { t: r.status, c: r.status === 'ok' ? 'ok' : (r.status === 'error' ? 'bad' : 'warn'), title: r.error || '' },
+        num(m.claims), num(m.auto), num(m.review), num(m.reject), pct(m.quote_failure_rate), pct(m.review_disagreement_rate),
+        { t: m.traps_total ? `${m.traps_passed}/${m.traps_total}` : '–', title: failed }, money(r.estimated_cost, r.currency), money(unit, r.currency)];
+    }), '还没有运行记录');
+  const select = document.getElementById('doc');
+  docs.documents.forEach(d => select.add(new Option(d, d)));
+  select.onchange = () => loadCompare(select.value).catch(showError);
+  await loadCompare(docs.documents[0]);
+}
+function showError(e) { const p = document.createElement('p'); p.className = 'bad'; p.textContent = '加载失败：' + e.message; document.querySelector('main').prepend(p); }
+main().catch(showError);
+</script>
+</body>
+</html>

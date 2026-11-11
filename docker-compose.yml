@@ -47,6 +47,9 @@ services:
       SCHEDULER_ENABLED: "${SCHEDULER_ENABLED:-true}"
       SCHEDULER_HOUR: "${SCHEDULER_HOUR:-1}"
       SCHEDULER_MINUTE: "${SCHEDULER_MINUTE:-0}"
+      RESEARCH_ADMIN_PASSWORD: ${RESEARCH_ADMIN_PASSWORD:-}
+    volumes:
+      - research_data:/app/data/raw/research
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,3 +75,4 @@ services:
 
 volumes:
   pgdata:
+  research_data:
